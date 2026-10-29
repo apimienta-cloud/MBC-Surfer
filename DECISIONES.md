@@ -130,3 +130,22 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Menú:** lo que hay detrás de la largada (chunk -1) también es Paseo MBC, así el menú muestra a la birra en la calle de los locales, con la Casa MBC y el galpón.
 - **Gigantografías antes en las otras zonas:** pasaron del chunk 2 al chunk 1 de cada zona.
 - **Rendimiento:** el Paseo MBC es la zona más cargada (hasta ~215 draw calls); el resto sigue en 130–180. Si en algún celular se nota, se puede poner un local cada dos chunks.
+
+## Más marca y más vida (logos, fuentes, fotos de los locales)
+
+- **Logos oficiales:** del PNG blanco con transparencia salen `logo-blanco.png`, `logo-negro.png` y `logo-dorado.png`.
+  - El dorado oficial (`#EBAB43`, sacado del logo) queda en `config.brand.colors.gold` y tiene prioridad sobre la paleta.
+  - Usos: menú y age gate (arriba del título), fachada de la Casa MBC (reemplaza el texto en Georgia), neón dentro del galpón, pantalla LED del escenario y afiches.
+- **Fuentes de la marca (Eatbreak de Holis Majid, Vanguard CF de Connary Fagen):** **no se suben al repo ni a la web**. Son licencias de escritorio y el repo es público; para usarlas en vivo en el HUD hace falta licencia webfont.
+  - Con ellas se generaron **imágenes**: el título "ESCAPALE AL LUNES" en Eatbreak y dos afiches con slogans de la marca ("Good people drink good beer" de la remera y "¡Viva la birra!" de la pared del local).
+  - El HUD sigue con Baloo 2 / Nunito (Google Fonts).
+- **Fotos nuevas → gigantografías:**
+  - Usadas: el galpón con guirnaldas, el neón y las letras MBC, la barra, las canillas con gorros y botellones, el patio de la casa y las pantallas del festival.
+  - Recortadas siempre: marcas de terceros (mural, Petrobras, Peugeot, el hotel, los sponsors del festival, la pizarra con otras cervecerías) y caras en primer plano.
+  - La foto de la multitud en la noche no se usa (caras).
+- **Locales más fieles a las fotos:**
+  - **Galpón:** patio adelante con intertrabado, mesas altas en tachos rojos, banquetas negras, palmeras, combi roja y blanca (sin marcas), macetas de tacho, reja de alambre, guirnaldas en la fachada y el cartel grande en poste junto a la vereda.
+  - **Casa:** árboles de hoja colorada (los de la foto del patio) y barriles de acero.
+  - **Escenario:** público con los brazos arriba y pantalla LED con el logo.
+- **Gente:** figuras low-poly sin cara (sentadas en las mesas, paradas con un vaso), metidas en la geometría de cada local. Además, peatones instanciados en las veredas de casi todas las zonas (remeras de colores, un vaso en la mano).
+- **Un punto MBC en cada zona:** un patio cervecero en Ciudad Vieja, Rambla, 18 de Julio, Tres Cruces, Puerto y Tristán Narvaja. Pocitos ya tiene la Casa y el escenario.

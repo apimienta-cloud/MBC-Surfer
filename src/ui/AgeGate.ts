@@ -16,7 +16,10 @@ export function ageGate(root: HTMLElement): Promise<void> {
     const el = document.createElement('div');
     el.className = 'screen screen-age visible';
     el.innerHTML = `
-      <h1 class="title">${T.title}</h1>
+<div class="brand-head">
+        <img class="brand-logo" src="${config.brand.logoWhiteUrl}" alt="MBC">
+        <h1 class="title"><img class="title-img" src="${config.brand.titleImage}" alt="${T.title}" onerror="this.replaceWith(this.alt)"></h1>
+      </div>
       <div class="age-card">
         <h2>${T.ageQuestion}</h2>
         <div class="menu-row">

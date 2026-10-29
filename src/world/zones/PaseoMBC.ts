@@ -1,4 +1,4 @@
-import { TREE_GREENS, ZoneDef } from './Zone';
+import { SHIRTS, TREE_GREENS, ZoneDef } from './Zone';
 
 /**
  * Paseo MBC: la primera zona de cada vuelta. Calle con los locales de MBC (casa, galpón, escenario),
@@ -33,6 +33,9 @@ export const PaseoMBC: ZoneDef = {
     c.row('guirnalda', -1, 0, 15, { offset: 7 });
     c.row('cartelMBC', -1, -(c.edge - 0.4), 30, { offset: 4 });
     c.row('cartelMBC', 1, c.edge - 0.4, 30, { offset: 19 });
+    // Mucha gente en las veredas, yendo y viniendo de los locales
+    c.row('persona', -1, -(c.edge - 1.0), 5, { colors: SHIRTS, jitter: 1.6 });
+    c.row('persona', 1, c.edge - 1.0, 5, { offset: 2.5, colors: SHIRTS, jitter: 1.6 });
     c.row('arbol', -1, -(c.roadHalf + 1.4), 20, { offset: 12, colors: TREE_GREENS, scale: 0.8 });
     c.row('arbol', 1, c.roadHalf + 1.4, 20, { offset: 2, colors: TREE_GREENS, scale: 0.8 });
 

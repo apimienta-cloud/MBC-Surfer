@@ -18,7 +18,8 @@ export type PropType =
   | 'contenedor'
   | 'muro'
   | 'guirnalda'
-  | 'cartelMBC';
+  | 'cartelMBC'
+  | 'persona';
 
 interface PropDef {
   base: THREE.BufferGeometry;
@@ -52,6 +53,19 @@ function guirnalda(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry }
     prev = p;
   }
   return { base: base.build(), tint: bulbs.build() };
+}
+
+/** Peatón low-poly sin cara con un vaso de birra; la remera toma el color de la instancia. */
+function peaton(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
+  const base = new Kit()
+    .boxC(0.14, 0.86, 0.15, '#2B3A55', 0, 0.43, -0.1)
+    .boxC(0.14, 0.86, 0.15, '#2B3A55', 0, 0.43, 0.1)
+    .sphere(0.13, '#C99A78', 0, 1.63, 0, undefined, 0)
+    .sphere(0.135, '#2A1E14', -0.03, 1.68, 0, { sy: 0.7 }, 0)
+    .cyl(0.05, 0.045, 0.16, '#F2B134', 0.38, 1.1, 0.25, 6)
+    .build();
+  const tint = new Kit().boxC(0.24, 0.62, 0.42, '#ffffff', 0, 1.17, 0).boxC(0.36, 0.1, 0.1, '#ffffff', 0.2, 1.17, 0.25).build();
+  return { base, tint };
 }
 
 /** Cartel redondo MBC en poste: la cara usa el recorte del cartel real (dos caras, con UVs). */
@@ -140,6 +154,7 @@ function defs(): Record<PropType, PropDef> {
     muro: { base: muro },
     guirnalda: { ...guirnalda(), emissive: true },
     cartelMBC: { ...cartelPoste(), map: config.brand.locales.path + config.brand.locales.cartel },
+    persona: peaton(),
   };
 }
 
@@ -155,6 +170,7 @@ const DEFAULT_TINT: Record<PropType, string> = {
   muro: '#ffffff',
   guirnalda: '#FFE2A0',
   cartelMBC: '#ffffff',
+  persona: '#2F6DB5',
 };
 
 const PER_SLOT: Record<PropType, number> = {
@@ -168,6 +184,7 @@ const PER_SLOT: Record<PropType, number> = {
   muro: 12,
   guirnalda: 6,
   cartelMBC: 6,
+  persona: 40,
 };
 
 interface Entry {

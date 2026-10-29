@@ -1,4 +1,4 @@
-import type { ZoneDef } from './Zone';
+import { SHIRTS, ZoneDef } from './Zone';
 
 /** Rambla: murito de un lado y el río del otro, pescadores, faro y el Cerro en el horizonte. */
 export const Rambla: ZoneDef = {
@@ -15,6 +15,9 @@ export const Rambla: ZoneDef = {
     c.row('farol', -1, -(c.edge - 0.5), 18, { offset: 4 });
     c.row('palmera', 1, c.roadHalf + 1.2, 12, { offset: 6, jitter: 1 });
     if (c.local === 1) c.billboard(1, -c.L / 2);
+    if (c.local === 4) c.landmark('patioMBC', 1, -c.L / 2, 2);
+    // Gente caminando por la rambla
+    c.row('persona', -1, -(c.edge - 1.4), 11, { colors: SHIRTS, jitter: 3 });
     c.street(1, ['apartment', 'apartment', 'colonial'], 3);
   },
 };

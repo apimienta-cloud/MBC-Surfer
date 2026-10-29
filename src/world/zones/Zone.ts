@@ -57,4 +57,6 @@ export interface ZoneDef {
 }
 
 export const TREE_GREENS = ['#4E8F45', '#5FA052', '#3F7A3A', '#6BAA4F'] as const;
+/** Colores de remeras para la gente de las veredas. */
+export const SHIRTS = ['#2F6DB5', '#E63946', '#F2F2F2', '#3E8E41', '#1E1E1E', '#EBAB43', '#9B6BD3', '#E07BB0', '#7FC4E8'] as const;
 export const AWNINGS = ['#E63946', '#F2B134', '#2F6DB5', '#3E8E41', '#E07BB0', '#F26B1D'] as const;

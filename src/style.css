@@ -90,6 +90,9 @@ html, body {
 .menu-bottom { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .screen-pause, .screen-gameover { background: rgba(30, 58, 95, 0.7); }
 
+.brand-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.brand-logo { width: clamp(90px, 22vw, 140px); height: auto; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)); }
+.title-img { display: block; width: min(420px, 70vw); max-height: 26vh; height: auto; object-fit: contain; }
 .title {
   font: 800 clamp(44px, 12vw, 84px)/0.95 var(--display);
   color: var(--gold);
@@ -356,7 +359,10 @@ h2 { font: 800 34px/1.1 var(--display); }
 
 /* En pantallas bajitas el menú se compacta */
 @media (max-height: 640px) {
-  .title { font-size: 40px; margin-bottom: 0; }
+  .brand-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.brand-logo { width: clamp(90px, 22vw, 140px); height: auto; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)); }
+.title-img { display: block; width: min(420px, 70vw); max-height: 26vh; height: auto; object-fit: contain; }
+.title { font-size: 40px; margin-bottom: 0; }
   .menu-bottom { gap: 8px; }
   .hint { display: none; }
 }

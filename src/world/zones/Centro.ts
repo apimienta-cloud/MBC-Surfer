@@ -1,4 +1,4 @@
-import { TREE_GREENS, ZoneDef } from './Zone';
+import { SHIRTS, TREE_GREENS, ZoneDef } from './Zone';
 
 /** 18 de Julio / Centro: avenida con edificios altos, Intendencia, Fuente de los Candados y el Legislativo al fondo. */
 export const Centro: ZoneDef = {
@@ -14,6 +14,10 @@ export const Centro: ZoneDef = {
     }
     if (c.local === 1) c.billboard(1, -c.L / 2);
     if (c.local === 9) c.billboard(-1, -c.L / 2);
+    if (c.local === 3) c.landmark('patioMBC', -1, -c.L / 2, 1);
+    // 18 de Julio: mucha gente en las veredas
+    c.row('persona', -1, -(c.edge - 0.9), 6, { colors: SHIRTS, jitter: 2 });
+    c.row('persona', 1, c.edge - 0.9, 6, { offset: 3, colors: SHIRTS, jitter: 2 });
     c.street(-1, ['office', 'office', 'colonial']);
     c.street(1, ['office', 'colonial', 'office']);
     // Plátanos y faroles en las veredas

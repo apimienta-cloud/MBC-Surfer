@@ -51,7 +51,11 @@ export const config = {
     // El archivo actual es 1920x1080 con fondo naranja, así que un recorte cuadrado central alcanza.
     fichaCropScale: 0.95,
     // TODO(brand): confirmar hex oficiales de MBC. Si se cargan acá, tienen prioridad sobre la paleta.
-    colors: {} as Partial<Record<keyof typeof palette, string>>,
+    // Dorado oficial del logo de MBC (tiene prioridad sobre la paleta)
+    colors: { gold: '#EBAB43' } as Partial<Record<keyof typeof palette, string>>,
+    // Logos oficiales con transparencia y título del juego (imagen hecha con la fuente Eatbreak de la marca)
+    titleImage: 'assets/brand/titulo-juego.png',
+    logoWhiteUrl: 'assets/brand/logo-blanco.png',
     // Locales de MBC en el mapa (texturas recortadas de fotos de la marca)
     locales: {
       path: 'assets/brand/locales/',
@@ -65,8 +69,18 @@ export const config = {
         'gigantografia-latas.jpg',
         'gigantografia-productos.jpg',
         'gigantografia-botellon.jpg',
+        'gigantografia-galpon-guirnaldas.jpg',
+        'gigantografia-neon.jpg',
+        'gigantografia-barra.jpg',
+        'gigantografia-canillas-merch.jpg',
+        'gigantografia-patio.jpg',
+        'gigantografia-festival.jpg',
+        'afiche-good-people.jpg',
+        'afiche-viva-la-birra.jpg',
       ],
       facadeName: ['MONTEVIDEO', 'BEER COMPANY'] as [string, string],
+      logoWhite: 'assets/brand/logo-blanco.png',
+      logoGold: 'assets/brand/logo-dorado.png',
     },
   },
 

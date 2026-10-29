@@ -1,4 +1,4 @@
-import type { ZoneDef } from './Zone';
+import { SHIRTS, ZoneDef } from './Zone';
 
 const CONTAINERS = ['#C8402F', '#2F6DB5', '#3E8E41', '#F26B1D', '#7A8288', '#B98B2C'] as const;
 
@@ -21,6 +21,8 @@ export const Puerto: ZoneDef = {
     if (c.local === 7) c.landmark('torreAntel', 1, -c.L / 2, 6);
     if (c.local === 4) c.landmark('galponMBC', 1, -c.L / 2 + 6, 2, 0.15);
     if (c.local === 1) c.billboard(1, -c.L / 2);
+    if (c.local === 9) c.landmark('patioMBC', 1, -c.L / 2, 1);
+    c.row('persona', 1, c.edge - 0.9, 14, { colors: SHIRTS, jitter: 3 });
     c.street(1, ['warehouse', 'warehouse', 'office'], 2);
     c.row('farol', 1, c.roadHalf + 0.5, 20);
     c.row('farol', -1, -(c.roadHalf + 0.5), 20, { offset: 10 });

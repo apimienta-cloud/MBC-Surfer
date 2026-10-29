@@ -20,6 +20,7 @@ const texCache = new Map<string, THREE.Texture>();
 /** Carga una textura de marca; si falta el archivo el material queda con su color liso. */
 function brandMaterial(file: string, fallback: string, opts: THREE.MeshStandardMaterialParameters = {}, emissive = false): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ color: fallback, roughness: 0.7, ...opts });
+  const url = file.startsWith('assets/') ? file : LC.path + file;
   const apply = (t: THREE.Texture): void => {
     mat.map = t;
     if (emissive) {
@@ -33,7 +34,7 @@ function brandMaterial(file: string, fallback: string, opts: THREE.MeshStandardM
   if (cached) apply(cached);
   else
     loader.load(
-      LC.path + file,
+      url,
       (t) => {
         t.colorSpace = THREE.SRGBColorSpace;
         t.anisotropy = 4;
@@ -42,7 +43,7 @@ function brandMaterial(file: string, fallback: string, opts: THREE.MeshStandardM
       },
       undefined,
       // TODO(brand): falta la imagen en public/assets/brand/locales/
-      () => console.warn(`[brand] Falta ${LC.path}${file}: se usa color liso.`),
+      () => console.warn(`[brand] Falta ${url}: se usa color liso.`),
     );
   return mat;
 }
@@ -139,6 +140,124 @@ function barrel(k: Kit, x: number, z: number): void {
   k.cyl(0.39, 0.39, 0.03, '#9B6B3E', x, 1.0, z, 12);
 }
 
+// ---------- Vida: gente y objetos de los locales (según las fotos) ----------
+
+const SHIRTS = ['#2F6DB5', '#E63946', '#F2F2F2', '#3E8E41', '#1E1E1E', '#EBAB43', '#9B6BD3', '#E07BB0', '#7FC4E8', '#C8862B'];
+const PANTS = ['#2B3A55', '#3A3A3A', '#6B5A45', '#1E1E1E', '#4E6E8E'];
+const SKIN = ['#E0B08A', '#C99A78', '#8D5E3C', '#F1C9A5'];
+const HAIR = ['#2A1E14', '#6B4423', '#C9A35A', '#1A1A1A', '#8E3A20'];
+let seed = 7;
+function rnd(): number {
+  seed = (seed * 1103515245 + 12345) >>> 0;
+  return seed / 4294967296;
+}
+function pick<T>(a: readonly T[]): T {
+  return a[Math.floor(rnd() * a.length)];
+}
+
+/**
+ * Persona low-poly sin cara (de espaldas o de perfil se lee igual): parada o sentada, con vaso de birra.
+ * `rotY` es hacia dónde mira (0 = +x). Las partes se rotan a mano para conservar los colores.
+ */
+export function person(k: Kit, x: number, z: number, o: { rotY?: number; sitting?: boolean; y?: number; armUp?: boolean } = {}): void {
+  const a = o.rotY ?? 0;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  // (adelante, costado) → coordenadas del mundo
+  const P = (f: number, l: number): [number, number] => [x + f * c + l * s, z - f * s + l * c];
+  const shirt = pick(SHIRTS);
+  const pants = pick(PANTS);
+  const skin = pick(SKIN);
+  const y0 = o.y ?? 0;
+  const ry = { ry: a };
+  if (o.sitting) {
+    for (const l of [-0.1, 0.1]) {
+      const [tx, tz] = P(0.2, l);
+      k.boxC(0.45, 0.14, 0.14, pants, tx, y0 + 0.52, tz, ry);
+      const [sx, sz] = P(0.4, l);
+      k.boxC(0.13, 0.45, 0.13, pants, sx, y0 + 0.25, sz, ry);
+    }
+    const [bx, bz] = P(-0.02, 0);
+    k.boxC(0.24, 0.58, 0.4, shirt, bx, y0 + 0.88, bz, ry);
+    k.sphere(0.13, skin, bx, y0 + 1.3, bz, undefined, 0);
+    const [hx, hz] = P(-0.03, 0);
+    k.sphere(0.135, pick(HAIR), hx, y0 + 1.35, hz, { sy: 0.7 }, 0);
+  } else {
+    for (const l of [-0.1, 0.1]) {
+      const [lx, lz] = P(0, l);
+      k.boxC(0.14, 0.86, 0.15, pants, lx, y0 + 0.43, lz, ry);
+    }
+    k.boxC(0.24, 0.62, 0.42, shirt, x, y0 + 1.17, z, ry);
+    k.sphere(0.13, skin, x, y0 + 1.63, z, undefined, 0);
+    const [hx, hz] = P(-0.03, 0);
+    k.sphere(0.135, pick(HAIR), hx, y0 + 1.68, hz, { sy: 0.7 }, 0);
+  }
+  // Brazo con el vaso
+  const base = o.sitting ? 0.88 : 1.17;
+  const [ax, az] = P(0.12, 0.25);
+  if (o.armUp) {
+    k.boxC(0.1, 0.5, 0.1, shirt, ax, y0 + base + 0.4, az, ry);
+    k.cyl(0.05, 0.045, 0.16, '#F2B134', ax, y0 + base + 0.66, az, 6);
+  } else {
+    const [fx, fz] = P(0.2, 0.25);
+    k.boxC(0.36, 0.1, 0.1, shirt, fx, y0 + base, fz, ry);
+    const [cx, cz] = P(0.38, 0.25);
+    k.cyl(0.05, 0.045, 0.16, '#F2B134', cx, y0 + base - 0.02, cz, 6);
+  }
+}
+
+/** Barril de acero (keg) con banda de color, como los del local. */
+function keg(k: Kit, x: number, y: number, z: number, band = '#EBAB43'): void {
+  k.cyl(0.28, 0.28, 0.62, '#C9CED3', x, y, z, 12);
+  for (const yy of [0.02, 0.56]) k.cyl(0.29, 0.29, 0.05, '#8E959C', x, y + yy, z, 12);
+  k.cyl(0.285, 0.285, 0.09, band, x, y + 0.27, z, 12);
+}
+
+/** Banqueta alta de metal negro (tipo taller). */
+function stool(k: Kit, x: number, z: number): void {
+  for (const [dx, dz] of [[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]]) k.box(0.04, 0.72, 0.04, '#1E1E1E', x + dx, 0, z + dz);
+  k.box(0.34, 0.05, 0.34, '#2A2A2A', x, 0.72, z);
+}
+
+/** Mesa alta sobre tacho rojo (como en la barra del galpón). */
+function drumTable(k: Kit, x: number, z: number): void {
+  k.cyl(0.3, 0.3, 1.0, '#B23A3A', x, 0, z, 12);
+  k.cyl(0.42, 0.42, 0.05, '#7A5232', x, 1.0, z, 12);
+}
+
+/** Palmera (como las del frente del galpón). */
+function palm(k: Kit, x: number, z: number, h = 7): void {
+  for (let i = 0; i < 5; i++) k.cyl(0.2 - i * 0.02, 0.24 - i * 0.02, h / 5, '#7A5C3B', x + i * 0.08, (i * h) / 5, z, 6);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    k.boxC(2.6, 0.06, 0.5, i % 2 ? '#4F8A3C' : '#3E7A32', x + 0.4 + Math.cos(a) * 1.2, h + 0.1, z + Math.sin(a) * 1.2, { ry: -a, rz: -0.4 });
+  }
+}
+
+/** Combi clásica roja y blanca estacionada (sin marcas), larga a lo largo de z. */
+function van(k: Kit, x: number, z: number): void {
+  k.box(1.9, 0.95, 4.3, '#C8352E', x, 0.35, z);
+  k.box(1.9, 0.95, 4.0, '#F2F0EA', x, 1.3, z - 0.15);
+  k.box(1.92, 0.5, 3.4, '#2F3E4A', x, 1.5, z - 0.3);
+  k.prism(1.9, 0.5, 0.08, '#F2F0EA', x, 0.85, z + 2.16, { ry: Math.PI / 2 });
+  k.box(1.7, 0.55, 0.06, '#2F3E4A', x, 1.55, z + 2.0);
+  for (const zz of [-1.4, 1.4]) for (const xx of [-0.9, 0.9]) k.cylC(0.36, 0.25, '#1E1E1E', x + xx, 0.36, z + zz, 10, { rz: Math.PI / 2 });
+  k.box(1.6, 0.08, 2.4, '#3A3A3A', x, 2.28, z - 0.3);
+}
+
+/** Árbol de hoja colorada (los del patio de la casa). */
+function redTree(k: Kit, x: number, z: number): void {
+  k.cyl(0.14, 0.2, 2.2, '#5A3B24', x, 0, z, 6);
+  for (const [dx, dy, dz, r] of [[0, 3.2, 0, 1.4], [0.6, 3.8, 0.4, 1.0], [-0.6, 3.6, -0.4, 1.0]]) k.sphere(r, '#7B2E3A', x + dx, dy, z + dz, undefined, 0);
+}
+
+/** Maceta hecha con tacho negro (frente del galpón). */
+function drumPlanter(k: Kit, x: number, z: number): void {
+  k.cyl(0.32, 0.32, 0.85, '#1E1E1E', x, 0, z, 10);
+  k.box(0.02, 0.25, 0.3, '#E8E8E8', x + 0.32, 0.35, z);
+  for (let i = 0; i < 5; i++) k.cone(0.07, 0.9 + (i % 2) * 0.4, '#4C7A34', x + Math.cos(i * 1.3) * 0.15, 0.85, z + Math.sin(i * 1.3) * 0.15, 4, { rz: Math.cos(i) * 0.35, rx: Math.sin(i) * 0.35 });
+}
+
 /** Reja de barrotes oscuros a lo largo de z entre z0 y z1, en x. */
 function fence(k: Kit, x: number, z0: number, z1: number, h = 1.9): void {
   const c = '#2B2124';
@@ -194,7 +313,16 @@ export function buildCasaMBC(): LocalModel {
 
   // Patio cervecero: piso, mesas, barriles, reja con pilares blancos y portón
   k.box(8.4, 0.06, 18, '#5A4F46', 3.2, 0, 0);
-  for (const x of [1.6, 4.6]) for (const z of [-7, -3.2, 0.6]) picnicTable(k, x, z);
+  for (const x of [1.6, 4.6]) for (const z of [-7, -3.2, 0.6]) {
+    picnicTable(k, x, z);
+    // Gente sentada en los bancos, mirando a la mesa
+    if (rnd() < 0.8) person(k, x - 0.78, z - 0.4 + rnd() * 0.8, { sitting: true, rotY: 0 });
+    if (rnd() < 0.6) person(k, x + 0.78, z - 0.4 + rnd() * 0.8, { sitting: true, rotY: Math.PI });
+  }
+  for (const [x, z, r] of [[6.4, -3.6, 2.4], [5.8, 4.6, 3.6], [2.6, 7.6, 1.2]] as const) person(k, x, z, { rotY: r, armUp: rnd() < 0.3 });
+  redTree(k, 0.4, -8.6);
+  redTree(k, 3.4, 8.4);
+  for (let i = 0; i < 3; i++) keg(k, -0.2, 0, 6.6 + i * 0.62, i === 1 ? '#9BCB2E' : '#EBAB43');
   barrel(k, 6.2, -5.2);
   barrel(k, 6.2, 1.5);
   barrel(k, 1.2, 8);
@@ -219,14 +347,23 @@ export function buildCasaMBC(): LocalModel {
   extras.add(wash('#35E3A1', 10, 9, fx + 0.06, 6, -4.5));
   extras.add(wash('#FFC46B', 8, 7, fx + 0.07, 3.8, 4));
   // Nombre en la fachada (texto, no logo)
-  extras.add(facadeName(fx + 0.1, 6.9, -4.6));
+  extras.add(facadeLogo(fx + 0.1, 6.9, -4.6));
 
   extras.add(new THREE.Mesh(bulbs.build(), bulbMat));
   return { geo: k.build(), extras };
 }
 
-/** "MONTEVIDEO BEER COMPANY" en letras de relieve sobre la fachada (texto en CanvasTexture). */
-function facadeName(x: number, y: number, z: number): THREE.Mesh {
+/** Logo oficial (blanco) sobre la fachada; se ilumina de noche con el bañado verde. */
+function facadeLogo(x: number, y: number, z: number): THREE.Mesh {
+  const mat = glowEmissive(brandMaterial(LC.logoWhite, '#EDE8DD', { transparent: true, alphaTest: 0.3 }, true), 0.1, 0.7);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 2.4), mat);
+  m.position.set(x, y, z);
+  m.rotation.y = Math.PI / 2;
+  return m;
+}
+
+/** "MONTEVIDEO BEER COMPANY" en letras de relieve sobre la fachada (texto en CanvasTexture). Respaldo si no hay logo. */
+export function facadeName(x: number, y: number, z: number): THREE.Mesh {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 176;
@@ -268,7 +405,14 @@ export function buildPatioMBC(): LocalModel {
   // Muro de fondo con plantas
   k.box(0.5, 2.6, W, '#EDE8DD', -D + 0.5, 0, 0);
   for (let z = -W / 2 + 0.6; z < W / 2; z += 1.4) k.sphere(0.6, '#4F8A3C', -D + 1, 2.7, z, { sy: 0.8 }, 0);
-  for (const [x, z] of [[-2.2, -5.2], [-2.2, -1.2], [-2.2, 2.8], [-6, -3.2], [-6, 0.8]] as const) picnicTable(k, x, z);
+  for (const [x, z] of [[-2.2, -5.2], [-2.2, -1.2], [-2.2, 2.8], [-6, -3.2], [-6, 0.8]] as const) {
+    picnicTable(k, x, z);
+    if (rnd() < 0.85) person(k, x - 0.78, z - 0.4 + rnd() * 0.8, { sitting: true, rotY: 0 });
+    if (rnd() < 0.7) person(k, x + 0.78, z - 0.4 + rnd() * 0.8, { sitting: true, rotY: Math.PI });
+  }
+  for (const [x, z, r] of [[-2.6, 5.9, 0.4], [-0.6, 6.1, 3.4], [-4.4, 6.8, 1.6]] as const) person(k, x, z, { rotY: r, armUp: rnd() < 0.4 });
+  for (let i = 0; i < 4; i++) keg(k, -8.1, 0, -6.8 + i * 0.62, i % 2 ? '#EBAB43' : '#C8322A');
+  for (let i = 0; i < 2; i++) keg(k, -8.1, 0.62, -6.5 + i * 0.62);
   for (const z of [5.4, 6.8]) {
     barrel(k, -1.6, z);
     for (const dz of [-0.55, 0.55]) k.box(0.32, 0.75, 0.32, '#2A2A2A', -0.9, 0, z + dz);
@@ -426,22 +570,46 @@ export function buildGalponMBC(): LocalModel {
   k.box(9.4, 0.3, 0.25, frame, -D / 2, 8.15, W / 2 + 0.1);
   for (let i = 0; i <= 6; i++) k.box(0.14, 7.6, 0.22, frame, -D / 2 - 4.5 + i * 1.5, 0.6, W / 2 + 0.1);
 
-  // Cartel redondo en la chapa (como en la foto) y otro en poste
+  // Cartel redondo en la chapa (como en la foto) y el grande en poste, junto a la vereda
   const wallSign = cartelDisc(1.9);
   wallSign.position.set(0.25, 6.6, -9.4 + 2.2);
   extras.add(wallSign);
-  k.cyl(0.13, 0.16, 6.2, '#5B3A28', 2.6, 0, 9.4, 8);
-  const pole = cartelDisc(1.35);
-  pole.position.set(2.6, 7.4, 9.4);
+  k.cyl(0.16, 0.2, 7.4, '#5B3A28', 8.6, 0, 8.6, 8);
+  const pole = cartelDisc(1.7);
+  pole.position.set(8.6, 8.9, 8.6);
   extras.add(pole);
 
-  // Plantas puntiagudas adelante
-  for (let z = -9.2; z <= 9.2; z += 1.2) {
-    for (let j = 0; j < 4; j++) {
-      const a = j * 1.6 + z;
-      k.cone(0.12, 1.1 + (j % 2) * 0.4, j % 2 ? '#5E8F3E' : '#4C7A34', 1.0 + Math.cos(a) * 0.25, 0, z + Math.sin(a) * 0.25, 4, { rz: Math.cos(a) * 0.4, rx: Math.sin(a) * 0.4 });
-    }
+  // Neón MBC adentro, detrás del ventanal (se ve desde la calle)
+  const neon = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.2, 1.95),
+    glowEmissive(brandMaterial(LC.logoGold, '#EBAB43', { transparent: true, alphaTest: 0.3 }, true), 0.5, 1.6),
+  );
+  neon.position.set(0.12, 5.4, 4.5);
+  neon.rotation.y = Math.PI / 2;
+  extras.add(neon);
+
+  // Patio de adelante: intertrabado con pasto, mesas altas en tachos, banquetas y gente
+  k.box(9, 0.06, W, '#8A8580', 4.6, 0, 0);
+  for (let z = -W / 2 + 0.8; z < W / 2; z += 1.1) k.box(9, 0.07, 0.08, '#6E8F55', 4.6, 0, z);
+  for (const [x, z] of [[2.6, -6], [2.6, -1.2], [5.6, -3.6], [5.6, 1.4], [2.6, 3.6]] as const) {
+    drumTable(k, x, z);
+    for (const [dx, dz] of [[0.7, 0], [-0.7, 0], [0, 0.7]]) stool(k, x + dx, z + dz);
+    if (rnd() < 0.85) person(k, x + 0.75, z + 0.1, { rotY: Math.PI, armUp: rnd() < 0.25 });
+    if (rnd() < 0.7) person(k, x - 0.8, z - 0.1, { rotY: 0 });
   }
+  // Combi estacionada, palmeras, macetas de tacho y reja de alambre hacia la vereda
+  van(k, 6.4, 6.8);
+  palm(k, 8.2, -8.8, 7.5);
+  palm(k, 3.4, 8.9, 6.4);
+  for (let z = -8; z <= 4; z += 2.4) drumPlanter(k, 8.4, z);
+  for (const z of [-W / 2, -5, 0, 5]) k.box(0.08, 2.2, 0.08, '#5F6368', 9.2, 0, z);
+  k.box(0.05, 0.06, W / 2 + 5, '#5F6368', 9.2, 2.2, -2.5);
+  for (let z = -W / 2; z < 5; z += 0.35) k.box(0.02, 2.2, 0.02, '#8E959C', 9.2, 0, z);
+  // Guirnaldas en la fachada (como en la foto del atardecer)
+  const lights = new Kit();
+  for (const z of [-8, -2, 4]) stringLights(k, lights, new THREE.Vector3(0.25, 9.6, z), new THREE.Vector3(0.25, 9.6, z + 6), 1.6, 10);
+  for (const z of [-7, 1]) stringLights(k, lights, new THREE.Vector3(0.25, 8.8, z), new THREE.Vector3(8.6, 5, z + 4), 0.9, 10);
+  extras.add(new THREE.Mesh(lights.build(), bulbMat));
 
   // Muro con mural al costado (detrás, en -z)
   k.box(8, 8.5, 0.8, '#8E8C88', -6, 0, -W / 2 - 5);
@@ -495,6 +663,18 @@ export function buildEscenarioMBC(): LocalModel {
   // Tachos de luz en la parrilla
   for (let z = -5.5; z <= 5.5; z += 2.2) lights.cyl(0.2, 0.25, 0.4, '#ffffff', -0.5, 7.0, z, 8);
   extras.add(new THREE.Mesh(lights.build(), bulbMat));
+
+  // Público mirando la banda
+  for (let i = 0; i < 16; i++) person(k, 3 + rnd() * 5, -5.5 + rnd() * 11, { rotY: Math.PI, armUp: rnd() < 0.5 });
+  // Pantalla LED con el logo en la parrilla (como en el festival)
+  k.box(0.3, 2.4, 6.4, '#111111', -0.25, 7.8, 0);
+  const led = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.2, 2.2),
+    glowEmissive(brandMaterial(LC.logoWhite, '#DDDDDD', { transparent: true, alphaTest: 0.3 }, true), 0.6, 1.4),
+  );
+  led.position.set(-0.08, 9.0, 0);
+  led.rotation.y = Math.PI / 2;
+  extras.add(led);
 
   // Letras grandes adelante (cara frente a la pista) y un cartel chico en el cerco
   const big = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.56), letrasMaterial());

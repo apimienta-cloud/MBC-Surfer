@@ -1,4 +1,4 @@
-import { AWNINGS, TREE_GREENS, ZoneDef } from './Zone';
+import { AWNINGS, SHIRTS, TREE_GREENS, ZoneDef } from './Zone';
 
 /** Pocitos / Parque Rodó: edificios altos frente a la playa, sombrillas, letras de MONTEVIDEO y el castillito. */
 export const Pocitos: ZoneDef = {
@@ -15,6 +15,8 @@ export const Pocitos: ZoneDef = {
     if (c.local === 3) c.landmark('letrasMontevideo', -1, -c.L / 2, 9, 0.6);
     c.row('palmera', -1, -(c.edge - 0.6), 15, { offset: 5 });
     c.row('farol', 1, c.roadHalf + 0.5, 16);
+    c.row('persona', -1, -(c.edge - 1.2), 10, { colors: SHIRTS, jitter: 3 });
+    c.row('persona', 1, c.edge - 0.9, 12, { offset: 5, colors: SHIRTS, jitter: 2 });
     if (c.local === 1) c.billboard(1, -c.L / 2);
     // Casa MBC con su patio cervecero
     if (c.local === 5) c.landmark('casaMBC', 1, -c.L / 2, 3, 0.32);

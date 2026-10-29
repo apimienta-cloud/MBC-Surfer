@@ -80,7 +80,10 @@ export class UI {
     // ---------- Menú ----------
     const menu = this.panel('menu');
     menu.innerHTML = `
-      <h1 class="title">${T.title}</h1>
+<div class="brand-head">
+        <img class="brand-logo" src="${config.brand.logoWhiteUrl}" alt="MBC">
+        <h1 class="title"><img class="title-img" src="${config.brand.titleImage}" alt="${T.title}" onerror="this.replaceWith(this.alt)"></h1>
+      </div>
       <div class="menu-bottom">
         <button class="btn primary" data-act="play">${T.play}</button>
         <div class="menu-stats">

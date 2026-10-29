@@ -1,4 +1,4 @@
-import { TREE_GREENS, ZoneDef } from './Zone';
+import { SHIRTS, TREE_GREENS, ZoneDef } from './Zone';
 
 /** Tres Cruces / Parque Batlle: árboles, explanada y el Estadio Centenario con la Torre de los Homenajes. */
 export const TresCruces: ZoneDef = {
@@ -9,6 +9,8 @@ export const TresCruces: ZoneDef = {
     c.sides([{ kind: 'grass', width: 90 }], [{ kind: 'grass', width: 90 }]);
     const stadium = c.local === 6;
     if (c.local === 1) c.billboard(-1, -c.L / 2);
+    if (c.local === 4) c.landmark('patioMBC', -1, -c.L / 2, 3);
+    c.row('persona', 1, c.edge - 0.9, stadium ? 4 : 14, { colors: ['#6FB0E3', '#F2F2F2', ...SHIRTS], jitter: 2 });
     if (stadium) c.landmark('centenario', 1, -c.L / 2, 4);
     // Parque: árboles desparramados (menos del lado del estadio)
     for (let i = 0; i < 16; i++) {
