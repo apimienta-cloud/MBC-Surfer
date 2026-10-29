@@ -46,6 +46,14 @@ export const config = {
     fichaCropScale: 0.95,
     // TODO(brand): confirmar hex oficiales de MBC. Si se cargan acá, tienen prioridad sobre la paleta.
     colors: {} as Partial<Record<keyof typeof palette, string>>,
+    // Locales de MBC en el mapa (texturas recortadas de fotos de la marca)
+    locales: {
+      path: 'assets/brand/locales/',
+      cartel: 'cartel-mbc.png', // cartel redondo del poste
+      letras: 'letras-mbc.png', // letras luminosas del escenario
+      billboards: ['gigantografia-canillas.jpg', 'gigantografia-pared.jpg', 'gigantografia-galpon.jpg', 'gigantografia-casa.jpg'],
+      facadeName: ['MONTEVIDEO', 'BEER COMPANY'] as [string, string],
+    },
   },
 
   lanes: {

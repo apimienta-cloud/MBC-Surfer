@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { config } from '../config';
-import { Kit, kitMaterial } from './landmarks/kit';
+import { Kit, kitMaterial, setNightGlow } from './landmarks/kit';
+import { buildGigantografia } from './landmarks/LocalesMBC';
 import { getLandmark, LandmarkId } from './landmarks';
 import { buildBuilding, BuildingStyle, BuildingVariant } from './landmarks/Buildings';
 import { PropInstancer, PropType } from './landmarks/Props';
@@ -136,6 +137,7 @@ export class ChunkManager {
 
   setNight(f: number): void {
     this.props.setNight(f);
+    setNightGlow(f);
   }
 
   private sidewalkMat(color: string): THREE.Material {
@@ -278,6 +280,7 @@ class Builder implements ChunkCtx {
     const x = side < 0 ? -(EDGE + gap) - bb.max.x : EDGE + gap + bb.max.x;
     mesh.position.set(x, 0, z);
     mesh.rotation.y = this.face(side) + side * angle;
+    if (lm.extras) mesh.add(lm.extras.clone());
     this.slot.decor.add(mesh);
     const z0 = side < 0 ? z + bb.min.z : z - bb.max.z;
     const z1 = side < 0 ? z + bb.max.z : z - bb.min.z;
@@ -325,6 +328,17 @@ class Builder implements ChunkCtx {
 
   banner(text: string, z: number, sign = false): void {
     this.cm._banner(this.slot, text, z, sign);
+  }
+
+  billboard(side: Side, z: number): void {
+    const photos = config.brand.locales.billboards;
+    if (!photos.length) return;
+    const g = buildGigantografia(this.pick(photos));
+    g.position.set(side * (EDGE + 2.2), 0, z);
+    // Girada hacia la birra que se acerca, para que la foto se vea de lejos
+    g.rotation.y = this.face(side) + side * 0.6;
+    this.slot.decor.add(g);
+    this.reserve(side, z - 6, z + 6);
   }
 }
 

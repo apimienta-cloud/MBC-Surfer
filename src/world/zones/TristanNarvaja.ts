@@ -12,6 +12,7 @@ export const TristanNarvaja: ZoneDef = {
     // Puestos con toldos de colores en las dos veredas
     c.row('puestoFeria', -1, -(c.roadHalf + 1.7), 3.2, { colors: AWNINGS, jitter: 0.3 });
     c.row('puestoFeria', 1, c.roadHalf + 1.7, 3.2, { offset: 1.6, colors: AWNINGS, jitter: 0.3 });
+    if (c.local === 2) c.billboard(1, -c.L / 2);
     c.street(-1, ['colonial', 'colonial', 'house'], 1);
     c.street(1, ['colonial', 'house'], 1);
   },

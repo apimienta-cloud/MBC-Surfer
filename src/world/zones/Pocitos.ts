@@ -15,16 +15,21 @@ export const Pocitos: ZoneDef = {
     if (c.local === 3) c.landmark('letrasMontevideo', -1, -c.L / 2, 9, 0.6);
     c.row('palmera', -1, -(c.edge - 0.6), 15, { offset: 5 });
     c.row('farol', 1, c.roadHalf + 0.5, 16);
+    if (c.local === 2) c.billboard(1, -c.L / 2);
+    // Casa MBC con su patio cervecero
+    if (c.local === 5) c.landmark('casaMBC', 1, -c.L / 2, 3, 0.32);
     if (park) {
-      // Parque Rodó: el castillito entre árboles
+      // Parque Rodó: el castillito entre árboles y un escenario de MBC
       if (c.local === 8) c.landmark('castillito', 1, -c.L / 2, 7);
+      if (c.local === 9) c.landmark('escenarioMBC', 1, -c.L / 2, 5, 0.35);
       for (let i = 0; i < 14; i++) {
         const z = -c.rnd() * c.L;
-        if (c.local === 8 && Math.abs(z + c.L / 2) < 9) continue;
+        if ((c.local === 8 || c.local === 9) && Math.abs(z + c.L / 2) < 10) continue;
         c.prop('arbol', c.edge + 3 + c.rnd() * 30, 0, z, c.rnd() * 6, 0.9 + c.rnd() * 0.5, c.pick(TREE_GREENS));
       }
     } else {
-      c.street(1, 'apartment', 2);
+      // Antes de la Casa MBC, casas bajas para que la fachada se vea de lejos
+      c.street(1, c.local === 4 ? 'house' : 'apartment', 2);
     }
   },
 };

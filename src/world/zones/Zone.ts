@@ -43,6 +43,8 @@ export interface ChunkCtx {
   face(side: Side): number;
   /** Pasacalle sobre la pista con un texto. */
   banner(text: string, z: number): void;
+  /** Gigantografía con una foto de los locales de MBC, al costado de la pista. */
+  billboard(side: Side, z: number): void;
 }
 
 export interface ZoneDef {

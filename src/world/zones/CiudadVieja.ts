@@ -16,6 +16,7 @@ export const CiudadVieja: ZoneDef = {
     }
     if (c.local === 7) c.landmark('teatroSolis', -1, mid, 5, 0.25);
     if (c.local === 10) c.landmark('mercadoPuerto', 1, mid, 4, 0.25);
+    if (c.local === 2) c.billboard(1, -c.L / 2);
     c.street(-1, 'colonial');
     c.street(1, 'colonial');
     c.row('farol', -1, -(c.roadHalf + 0.5), 14);

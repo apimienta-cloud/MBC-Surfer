@@ -14,6 +14,7 @@ import { buildPalacioLegislativo } from './PalacioLegislativo';
 import { buildCentenario } from './Centenario';
 import { buildTorreAntel } from './TorreAntel';
 import { buildGrua } from './GruaPortuaria';
+import { buildCasaMBC, buildEscenarioMBC, buildGalponMBC, LocalModel } from './LocalesMBC';
 
 export type LandmarkId =
   | 'palacioSalvo'
@@ -30,7 +31,10 @@ export type LandmarkId =
   | 'palacioLegislativo'
   | 'centenario'
   | 'torreAntel'
-  | 'grua';
+  | 'grua'
+  | 'casaMBC'
+  | 'galponMBC'
+  | 'escenarioMBC';
 
 export interface Landmark {
   geo: THREE.BufferGeometry;
@@ -39,10 +43,12 @@ export interface Landmark {
   depth: number;
   /** Emisores de humo relativos al landmark (fachada hacia +x). */
   smoke?: { x: number; y: number; z: number }[];
+  /** Texturas y luces que no entran en la geometría fusionada (se clonan en cada aparición). */
+  extras?: THREE.Object3D;
 }
 
 // Cada builder se puede reemplazar por un .glb sin tocar la lógica de las zonas
-const BUILDERS: Record<LandmarkId, () => THREE.BufferGeometry> = {
+const BUILDERS: Partial<Record<LandmarkId, () => THREE.BufferGeometry>> = {
   palacioSalvo: buildPalacioSalvo,
   artigas: buildArtigas,
   puertaCiudadela: buildPuertaCiudadela,
@@ -60,15 +66,23 @@ const BUILDERS: Record<LandmarkId, () => THREE.BufferGeometry> = {
   grua: buildGrua,
 };
 
+// Locales de MBC: geometría + extras con las fotos de la marca
+const LOCALES: Partial<Record<LandmarkId, () => LocalModel>> = {
+  casaMBC: buildCasaMBC,
+  galponMBC: buildGalponMBC,
+  escenarioMBC: buildEscenarioMBC,
+};
+
 const cache = new Map<LandmarkId, Landmark>();
 
 /** Geometría cacheada del landmark: se arma una sola vez y se comparte entre chunks. */
 export function getLandmark(id: LandmarkId): Landmark {
   let lm = cache.get(id);
   if (!lm) {
-    const geo = BUILDERS[id]();
+    const local = LOCALES[id]?.();
+    const geo = local ? local.geo : BUILDERS[id]!();
     const bb = geo.boundingBox!;
-    lm = { geo, width: bb.max.z - bb.min.z, depth: bb.max.x - bb.min.x };
+    lm = { geo, width: bb.max.z - bb.min.z, depth: bb.max.x - bb.min.x, extras: local?.extras };
     if (id === 'mercadoPuerto') lm.smoke = [MERCADO_SMOKE];
     cache.set(id, lm);
   }

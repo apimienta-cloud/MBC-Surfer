@@ -134,3 +134,33 @@ export class Kit {
 
 /** Material compartido para todo lo armado con el Kit (colores por vértice, sombreado plano). */
 export const kitMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true });
+
+// ---------- Cosas que se prenden de noche (guirnaldas, carteles, ventanales) ----------
+
+interface Glow {
+  mat: THREE.Material & { emissiveIntensity?: number; opacity: number };
+  prop: 'emissiveIntensity' | 'opacity';
+  day: number;
+  night: number;
+}
+const glowing: Glow[] = [];
+
+/** Registra un material emisivo: su intensidad va de `day` a `night` según cae la noche. */
+export function glowEmissive<T extends THREE.MeshStandardMaterial>(mat: T, day: number, night: number): T {
+  mat.emissiveIntensity = day;
+  glowing.push({ mat, prop: 'emissiveIntensity', day, night });
+  return mat;
+}
+
+/** Registra un material transparente (bañados de luz): su opacidad va de `day` a `night`. */
+export function glowOpacity<T extends THREE.Material>(mat: T, day: number, night: number): T {
+  mat.transparent = true;
+  mat.opacity = day;
+  glowing.push({ mat: mat as Glow['mat'], prop: 'opacity', day, night });
+  return mat;
+}
+
+/** 0 = tarde, 1 = noche cerrada. Lo llama el ChunkManager con la oscuridad del cielo. */
+export function setNightGlow(f: number): void {
+  for (const g of glowing) g.mat[g.prop] = g.day + (g.night - g.day) * f;
+}

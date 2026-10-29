@@ -82,3 +82,25 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Deploy:** quedan listos `netlify.toml` y el workflow de GitHub Pages (`.github/workflows/deploy.yml`). No se publicó nada: hace falta la cuenta de la marca.
 - **Finales de línea:** `.gitattributes` fija LF para no mezclar CRLF en Windows.
 - **Fichitas en zigzag:** cuando la línea guía cambia a un carril vecino, cruza en diagonal entre dos filas (`coins.zigzagLength` m), y solo si ninguno de los dos carriles tiene un bondi en ese tramo. Las fichitas nunca caen dentro de un obstáculo: el cruce termina antes de la fila siguiente.
+
+## Locales de MBC en el mapa (fotos de la marca)
+
+- **No se pegan fotos sueltas en el mundo low-poly:** se usan recortes puntuales de las fotos como texturas, sobre modelos hechos con el Kit e inspirados en cada local:
+  - **Casa MBC** (Pocitos, chunk 5): la casona blanca con el patio cervecero, guirnaldas, reja, pérgola, el cartel redondo en poste y la luz verde/cálida sobre la fachada.
+    - Antes de la casa van casas bajas para que se vea de lejos.
+    - El nombre "MONTEVIDEO BEER COMPANY" de la fachada es texto (`config.brand.locales.facadeName`), no un logo dibujado.
+  - **Galpón MBC** (Puerto/Aguada, chunk 4): el cubo de chapa corten con ventanales que se prenden de noche, el cartel redondo y un mural de carteles retro.
+    - El mural tiene paneles de colores y formas sin texto: el de la foto lleva marcas de terceros.
+  - **Escenario MBC** (Parque Rodó, chunk 9): tablado con banda y las letras luminosas recortadas de la foto del escenario.
+  - **Gigantografías:** una por zona en el chunk 2 (dos en 18 de Julio), con fotos de los locales y el cartel redondo en la esquina. Están giradas hacia la birra que se acerca.
+- **Fotos que se usan:**
+  - Cartel del poste → `cartel-mbc.png`, el logo real recortado de la foto.
+  - Letras del escenario → `letras-mbc.png`, recortadas con transparencia.
+  - Canillas, pared con el sello MBC, galpón y casa → gigantografías 2:1.
+- **Fotos que no se usan:**
+  - Las que tienen gente en primer plano (caras reconocibles).
+  - La pizarra de canillas, porque nombra otras cervecerías.
+  - El mural con carteles de otras marcas.
+  - Del galpón se recortó el cartel de un local vecino que aparece en el borde.
+- **Ubicación en el mapa:** la Casa MBC va en Pocitos porque la foto muestra la esquina de Bv. España y Dr. Enrique Muñoz. El galpón va en Puerto/Aguada por su estética industrial; si está en otra zona, se mueve cambiando una línea en `zones/`.
+- **De noche:** guirnaldas, carteles, ventanales y bañados de luz usan materiales registrados en `glowEmissive` / `glowOpacity` (`landmarks/kit.ts`), que el ChunkManager prende según la oscuridad del cielo.
