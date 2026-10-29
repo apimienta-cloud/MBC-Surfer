@@ -8,7 +8,7 @@ export const TresCruces: ZoneDef = {
   decorate(c) {
     c.sides([{ kind: 'grass', width: 90 }], [{ kind: 'grass', width: 90 }]);
     const stadium = c.local === 6;
-    if (c.local === 2) c.billboard(-1, -c.L / 2);
+    if (c.local === 1) c.billboard(-1, -c.L / 2);
     if (stadium) c.landmark('centenario', 1, -c.L / 2, 4);
     // Parque: árboles desparramados (menos del lado del estadio)
     for (let i = 0; i < 16; i++) {

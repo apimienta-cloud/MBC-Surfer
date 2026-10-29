@@ -1,5 +1,6 @@
 import { config, ObstacleKind, ObstacleVariant, ZoneId } from '../../config';
 import type { ZoneDef } from './Zone';
+import { PaseoMBC } from './PaseoMBC';
 import { CiudadVieja } from './CiudadVieja';
 import { Rambla } from './Rambla';
 import { Pocitos } from './Pocitos';
@@ -9,6 +10,7 @@ import { Puerto } from './Puerto';
 import { TristanNarvaja } from './TristanNarvaja';
 
 const ZONES: Record<ZoneId, ZoneDef> = {
+  paseoMBC: PaseoMBC,
   ciudadVieja: CiudadVieja,
   rambla: Rambla,
   pocitos: Pocitos,
@@ -36,7 +38,9 @@ export class ZoneSystem {
   private readonly order = config.zones.order.map((id) => ZONES[id]);
 
   chunkInfo(k: number): ChunkInfo {
-    const kk = Math.max(0, k);
+    // Detrás de la largada (lo que se ve en el menú): la primera zona con local -1
+    if (k < 0) return { zone: this.order[0], next: this.order[0], local: -1, transition: false };
+    const kk = k;
     const zi = Math.floor(kk / this.cycle);
     const local = kk % this.cycle;
     return {

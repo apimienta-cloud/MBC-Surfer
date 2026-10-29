@@ -118,3 +118,15 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Compras guardadas:** las skins con ids viejos se migran (`config.skinRenames`: lata → blonde, chopp → pinta, litro → botellon), así nadie pierde lo que compró.
 - **Pantalla de skins:** cada tarjeta muestra la foto del producto (miniaturas de ~6 KB).
 - **Gigantografías nuevas:** las 4 latas, latas y botella sobre fondo claro, y el botellón con la pinta.
+
+## Paseo MBC: la primera zona, con los locales
+
+- **Problema:** los locales y las fotos aparecían tarde (la Casa MBC a ~2 km), y la mayoría de las partidas termina antes.
+- **Solución:** cada vuelta del mapa arranca en **Paseo MBC** (~800 m), y el resto de las zonas viene después (`config.zones.order`). La zona tiene:
+  - **Locales:** la Casa MBC, el galpón, el escenario y patios cerveceros (`patioMBC`: intertrabado, mesas de picnic, barriles con banquetas, guirnaldas, reja baja y cartel sobre el portón), alternando de lado.
+  - **Calle:** guirnaldas cruzando la calle cada 15 m (a 7,6–8,6 m de altura, para que no tapen la cámara) y carteles redondos MBC en poste en las veredas (props instanciados con el recorte del cartel real, que se prenden de noche).
+  - **Gigantografías** cada dos chunks y edificios de chapa corten (estilo `corten`) entre casonas.
+  - **Obstáculos propios:** barriles y mesa de picnic (bajos), cartel colgante con el logo (alto, se pasa rodando) y barra móvil con canillas y cartel (bloque).
+- **Menú:** lo que hay detrás de la largada (chunk -1) también es Paseo MBC, así el menú muestra a la birra en la calle de los locales, con la Casa MBC y el galpón.
+- **Gigantografías antes en las otras zonas:** pasaron del chunk 2 al chunk 1 de cada zona.
+- **Rendimiento:** el Paseo MBC es la zona más cargada (hasta ~215 draw calls); el resto sigue en 130–180. Si en algún celular se nota, se puede poner un local cada dos chunks.

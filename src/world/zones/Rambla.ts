@@ -14,7 +14,7 @@ export const Rambla: ZoneDef = {
     if (c.local === 6) c.landmark('faro', -1, -c.L / 2, 9);
     c.row('farol', -1, -(c.edge - 0.5), 18, { offset: 4 });
     c.row('palmera', 1, c.roadHalf + 1.2, 12, { offset: 6, jitter: 1 });
-    if (c.local === 2) c.billboard(1, -c.L / 2);
+    if (c.local === 1) c.billboard(1, -c.L / 2);
     c.street(1, ['apartment', 'apartment', 'colonial'], 3);
   },
 };

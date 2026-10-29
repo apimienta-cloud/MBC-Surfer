@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { config, ObstacleVariant } from '../config';
 import { Kit } from './landmarks/kit';
+import { cartelDisc } from './landmarks/LocalesMBC';
 
 const O = config.obstacles;
 const B = O.bondi;
@@ -122,6 +123,58 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
       for (const x of [-1.1, 1.1]) k.box(0.5, 0.15, 0.7, '#4A4A4A', x, 0);
       break;
     }
+    // ---------- MBC (Paseo MBC) ----------
+    case 'barriles': {
+      // Dos barriles de metal (como las mesas de los patios) con latitas arriba
+      for (const x of [-0.5, 0.5]) {
+        k.cyl(0.42, 0.44, 0.92, '#7A5232', x, 0, 0, 14);
+        for (const y of [0.18, 0.72]) k.cyl(0.45, 0.45, 0.05, '#4A4A4A', x, y, 0, 14);
+        k.cyl(0.43, 0.43, 0.03, '#9B6B3E', x, 0.92, 0, 14);
+      }
+      const cans = ['#F2AE14', '#9BCB2E', '#C8322A'];
+      cans.forEach((c, i) => k.cyl(0.05, 0.05, 0.16, c, -0.62 + i * 0.25, 0.95, 0.1, 8));
+      break;
+    }
+    case 'mesaPicnic': {
+      // Mesa de picnic de madera atravesada en el carril
+      const wood = '#8B5E3C';
+      const dark = '#5A3B24';
+      k.box(1.9, 0.08, 0.8, wood, 0, 0.78);
+      for (const z of [-0.6, 0.6]) k.box(1.9, 0.06, 0.28, wood, 0, 0.45, z);
+      for (const x of [-0.75, 0.75]) {
+        k.boxC(0.08, 0.95, 0.08, dark, x, 0.42, -0.28, { rx: -0.5 });
+        k.boxC(0.08, 0.95, 0.08, dark, x, 0.42, 0.28, { rx: 0.5 });
+        k.box(0.08, 0.06, 1.6, dark, x, 0.4, 0);
+      }
+      k.cyl(0.04, 0.05, 0.16, '#F2AE14', -0.3, 0.86, 0.1, 8);
+      k.cyl(0.04, 0.05, 0.16, '#9BCB2E', 0.35, 0.86, -0.1, 8);
+      break;
+    }
+    case 'cartelColgante': {
+      // Pórtico con tablón colgante y el cartel MBC (la cara va en los extras)
+      const top = O.high.bottom + O.high.height;
+      for (const x of [-1.25, 1.25]) k.box(0.15, 3.3, 0.15, '#3A2E26', x, 0, 0);
+      k.box(2.65, 0.15, 0.15, '#3A2E26', 0, 3.3, 0);
+      for (const x of [-0.8, 0.8]) k.box(0.04, 3.3 - top, 0.04, '#222222', x, top, 0);
+      k.box(2.3, O.high.height, 0.1, '#8B5E3C', 0, O.high.bottom, 0);
+      for (let i = 0; i < 7; i++) k.box(2.3, 0.03, 0.11, '#6E4A2E', 0, O.high.bottom + 0.1 + i * 0.12, 0);
+      break;
+    }
+    case 'barraMBC': {
+      // Barra móvil con canillas y cartel arriba (la cara del cartel va en los extras)
+      k.box(2.3, 1.1, 0.9, '#3B2A20', 0, 0, 0.35);
+      k.box(2.4, 0.08, 1.0, '#B9C2C8', 0, 1.1, 0.35);
+      k.box(2.3, 2.5, 0.25, '#B5562F', 0, 0, -0.55);
+      for (let y = 0.3; y < 2.5; y += 0.25) k.box(2.31, 0.04, 0.26, '#8E3F22', 0, y, -0.55);
+      k.box(2.0, 0.14, 0.14, '#C9CED3', 0, 1.55, -0.3);
+      for (let i = 0; i < 8; i++) {
+        const x = -0.85 + i * 0.243;
+        k.cyl(0.03, 0.03, 0.25, '#C9CED3', x, 1.3, -0.25, 6);
+        k.cyl(0.03, 0.035, 0.22, '#111111', x, 1.62, -0.3, 6);
+      }
+      for (let i = 0; i < 5; i++) k.cyl(0.07, 0.06, 0.2, '#F2D58A', -0.8 + i * 0.4, 1.18, 0.55, 8);
+      break;
+    }
     // ---------- Bondi ----------
     case 'bondi': {
       const lv = config.colors.bondiLiveries[livery % config.colors.bondiLiveries.length];
@@ -150,6 +203,23 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
     }
   }
   return k.build();
+}
+
+/** Partes con textura de marca que no entran en la geometría fusionada (se clonan por obstáculo). */
+export function obstacleExtras(variant: ObstacleVariant): THREE.Object3D | null {
+  if (variant === 'cartelColgante') {
+    const d = cartelDisc(0.62);
+    d.rotation.y = -Math.PI / 2;
+    d.position.set(0, O.high.bottom + O.high.height / 2, 0.12);
+    return d;
+  }
+  if (variant === 'barraMBC') {
+    const d = cartelDisc(0.55);
+    d.rotation.y = -Math.PI / 2;
+    d.position.set(0, 2.6 + 0.35, -0.45);
+    return d;
+  }
+  return null;
 }
 
 /** Rampa para subirse al techo del bondi: cuña que sube hacia -z, origen al comienzo de la rampa. */

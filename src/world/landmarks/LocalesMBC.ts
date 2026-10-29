@@ -55,7 +55,7 @@ function cartelMaterial(): THREE.MeshStandardMaterial {
 }
 
 /** Disco del cartel redondo con la foto en las dos caras, mirando a +x. */
-function cartelDisc(radius: number): THREE.Group {
+export function cartelDisc(radius: number): THREE.Group {
   const g = new THREE.Group();
   const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.03, radius * 1.03, 0.22, 28), new THREE.MeshStandardMaterial({ color: '#2B2622', roughness: 0.6 }));
   rim.rotation.z = Math.PI / 2;
@@ -248,6 +248,52 @@ function facadeName(x: number, y: number, z: number): THREE.Mesh {
   m.position.set(x, y, z);
   m.rotation.y = Math.PI / 2;
   return m;
+}
+
+// ---------- Patio cervecero ----------
+
+/**
+ * Patio al aire libre de MBC (como el de la foto con mesas de picnic): piso de adoquín intertrabado,
+ * mesas, barriles con banquetas, guirnaldas entre postes, reja baja con pilares blancos y el cartel redondo.
+ */
+export function buildPatioMBC(): LocalModel {
+  const k = new Kit();
+  const bulbs = new Kit();
+  const extras = new THREE.Group();
+  const D = 9;
+  const W = 16;
+  // Piso de intertrabado (gris con juntas verdes de pasto)
+  k.box(D, 0.06, W, '#8A8580', -D / 2 + 0.5, 0, 0);
+  for (let z = -W / 2 + 1; z < W / 2; z += 1.2) k.box(D, 0.07, 0.08, '#6E8F55', -D / 2 + 0.5, 0, z);
+  // Muro de fondo con plantas
+  k.box(0.5, 2.6, W, '#EDE8DD', -D + 0.5, 0, 0);
+  for (let z = -W / 2 + 0.6; z < W / 2; z += 1.4) k.sphere(0.6, '#4F8A3C', -D + 1, 2.7, z, { sy: 0.8 }, 0);
+  for (const [x, z] of [[-2.2, -5.2], [-2.2, -1.2], [-2.2, 2.8], [-6, -3.2], [-6, 0.8]] as const) picnicTable(k, x, z);
+  for (const z of [5.4, 6.8]) {
+    barrel(k, -1.6, z);
+    for (const dz of [-0.55, 0.55]) k.box(0.32, 0.75, 0.32, '#2A2A2A', -0.9, 0, z + dz);
+  }
+  // Postes y guirnaldas en zigzag
+  const posts: [number, number][] = [[-0.2, -7.6], [-8.2, -7.6], [-0.2, 7.6], [-8.2, 7.6], [-4.2, 0]];
+  for (const [x, z] of posts) k.cyl(0.07, 0.09, 4.4, '#3A2E26', x, 0, z, 6);
+  const top = (x: number, z: number): THREE.Vector3 => new THREE.Vector3(x, 4.4, z);
+  stringLights(k, bulbs, top(-0.2, -7.6), top(-8.2, 7.6), 0.9, 14);
+  stringLights(k, bulbs, top(-8.2, -7.6), top(-0.2, 7.6), 0.9, 14);
+  stringLights(k, bulbs, top(-0.2, -7.6), top(-0.2, 7.6), 0.7, 12);
+  stringLights(k, bulbs, top(-8.2, -7.6), top(-8.2, 7.6), 0.7, 12);
+  // Reja baja hacia la vereda con portón y pilares
+  fence(k, 0.4, -W / 2, -1.6, 1.3);
+  fence(k, 0.4, 1.6, W / 2, 1.3);
+  for (const z of [-W / 2, -1.6, 1.6, W / 2]) k.box(0.5, 1.7, 0.5, '#F1EEE8', 0.4, 0, z);
+  extras.add(new THREE.Mesh(bulbs.build(), bulbMat));
+  // Cartel redondo sobre el portón
+  k.box(0.12, 3.6, 0.12, '#5B3A28', 0.4, 0, -1.6);
+  k.box(0.12, 3.6, 0.12, '#5B3A28', 0.4, 0, 1.6);
+  k.box(0.14, 0.14, 3.3, '#5B3A28', 0.4, 3.6, 0);
+  const sign = cartelDisc(1.0);
+  sign.position.set(0.4, 4.7, 0);
+  extras.add(sign);
+  return { geo: k.build(), extras };
 }
 
 // ---------- Galpón MBC ----------

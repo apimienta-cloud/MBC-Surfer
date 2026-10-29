@@ -14,7 +14,7 @@ import { buildPalacioLegislativo } from './PalacioLegislativo';
 import { buildCentenario } from './Centenario';
 import { buildTorreAntel } from './TorreAntel';
 import { buildGrua } from './GruaPortuaria';
-import { buildCasaMBC, buildEscenarioMBC, buildGalponMBC, LocalModel } from './LocalesMBC';
+import { buildCasaMBC, buildEscenarioMBC, buildGalponMBC, buildPatioMBC, LocalModel } from './LocalesMBC';
 
 export type LandmarkId =
   | 'palacioSalvo'
@@ -34,7 +34,8 @@ export type LandmarkId =
   | 'grua'
   | 'casaMBC'
   | 'galponMBC'
-  | 'escenarioMBC';
+  | 'escenarioMBC'
+  | 'patioMBC';
 
 export interface Landmark {
   geo: THREE.BufferGeometry;
@@ -71,6 +72,7 @@ const LOCALES: Partial<Record<LandmarkId, () => LocalModel>> = {
   casaMBC: buildCasaMBC,
   galponMBC: buildGalponMBC,
   escenarioMBC: buildEscenarioMBC,
+  patioMBC: buildPatioMBC,
 };
 
 const cache = new Map<LandmarkId, Landmark>();

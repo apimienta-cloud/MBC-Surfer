@@ -20,7 +20,7 @@ export const Puerto: ZoneDef = {
     if (c.local % 4 === 2) c.landmark('grua', -1, -c.L / 2, 4);
     if (c.local === 7) c.landmark('torreAntel', 1, -c.L / 2, 6);
     if (c.local === 4) c.landmark('galponMBC', 1, -c.L / 2 + 6, 2, 0.15);
-    if (c.local === 2) c.billboard(1, -c.L / 2);
+    if (c.local === 1) c.billboard(1, -c.L / 2);
     c.street(1, ['warehouse', 'warehouse', 'office'], 2);
     c.row('farol', 1, c.roadHalf + 0.5, 20);
     c.row('farol', -1, -(c.roadHalf + 0.5), 20, { offset: 10 });

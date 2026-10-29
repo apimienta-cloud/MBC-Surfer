@@ -12,7 +12,7 @@ export const Centro: ZoneDef = {
       c.landmark('palacioMunicipal', 1, -c.L / 2, 10, 0.2);
       c.landmark('fuenteCandados', 1, -c.L / 2 + 14, 1.2);
     }
-    if (c.local === 2) c.billboard(1, -c.L / 2);
+    if (c.local === 1) c.billboard(1, -c.L / 2);
     if (c.local === 9) c.billboard(-1, -c.L / 2);
     c.street(-1, ['office', 'office', 'colonial']);
     c.street(1, ['office', 'colonial', 'office']);

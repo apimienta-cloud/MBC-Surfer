@@ -15,7 +15,7 @@ export const Pocitos: ZoneDef = {
     if (c.local === 3) c.landmark('letrasMontevideo', -1, -c.L / 2, 9, 0.6);
     c.row('palmera', -1, -(c.edge - 0.6), 15, { offset: 5 });
     c.row('farol', 1, c.roadHalf + 0.5, 16);
-    if (c.local === 2) c.billboard(1, -c.L / 2);
+    if (c.local === 1) c.billboard(1, -c.L / 2);
     // Casa MBC con su patio cervecero
     if (c.local === 5) c.landmark('casaMBC', 1, -c.L / 2, 3, 0.32);
     if (park) {

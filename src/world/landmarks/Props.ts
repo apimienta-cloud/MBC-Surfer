@@ -1,17 +1,78 @@
 import * as THREE from 'three';
-import { Kit, kitMaterial } from './kit';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { config } from '../../config';
+import { Kit, glowEmissive, kitMaterial } from './kit';
 
 /**
  * Props repetidos (faroles, árboles, sombrillas...) con InstancedMesh: un draw call por tipo para todo el mundo.
  * Cada prop tiene una parte "base" con colores fijos y opcionalmente una parte "tint" que toma el color de la instancia.
  * Los props miran hacia +x (la pista, si están del lado izquierdo).
  */
-export type PropType = 'farol' | 'arbol' | 'palmera' | 'sombrilla' | 'pescador' | 'puestoFeria' | 'contenedor' | 'muro';
+export type PropType =
+  | 'farol'
+  | 'arbol'
+  | 'palmera'
+  | 'sombrilla'
+  | 'pescador'
+  | 'puestoFeria'
+  | 'contenedor'
+  | 'muro'
+  | 'guirnalda'
+  | 'cartelMBC';
 
 interface PropDef {
   base: THREE.BufferGeometry;
   tint?: THREE.BufferGeometry;
   emissive?: boolean;
+  /** La parte tint lleva esta textura de marca (la geometría conserva UVs). */
+  map?: string;
+}
+
+const ROAD_HALF = (config.lanes.count * config.lanes.width + 0.6) / 2;
+
+/** Guirnalda de lamparitas cruzando la calle de vereda a vereda (como en los patios de MBC). */
+function guirnalda(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
+  const base = new Kit();
+  const bulbs = new Kit();
+  const x0 = ROAD_HALF + 0.9;
+  // Bien arriba: la cámara va a ~5 m (y sube al saltar), las lamparitas no la tienen que tapar
+  const top = 8.6;
+  const sag = 1.0;
+  for (const sx of [-1, 1]) base.cyl(0.07, 0.09, top + 0.2, '#3A2E26', sx * x0, 0, 0, 6);
+  const n = 16;
+  let prev = new THREE.Vector3(-x0, top, 0);
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const p = new THREE.Vector3(-x0 + 2 * x0 * t, top - Math.sin(t * Math.PI) * sag, 0);
+    const seg = new THREE.BoxGeometry(0.025, 0.025, prev.distanceTo(p));
+    seg.lookAt(p.clone().sub(prev));
+    const mid = prev.clone().add(p).multiplyScalar(0.5);
+    base.add(seg, '#1C1C1C', mid.x, mid.y, mid.z);
+    if (i < n) bulbs.sphere(0.1, '#ffffff', p.x, p.y - 0.14, p.z, undefined, 0);
+    prev = p;
+  }
+  return { base: base.build(), tint: bulbs.build() };
+}
+
+/** Cartel redondo MBC en poste: la cara usa el recorte del cartel real (dos caras, con UVs). */
+function cartelPoste(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
+  const r = 0.8;
+  const h = 4.6;
+  const base = new Kit()
+    .cyl(0.07, 0.09, h, '#5B3A28', 0, 0, 0, 8)
+    .cylC(r * 1.04, 0.16, '#2B2622', 0, h + r * 0.8, 0, 24, { rz: Math.PI / 2 })
+    .build();
+  const faces = [1, -1].map((sx) => {
+    const g = new THREE.CircleGeometry(r, 28);
+    g.rotateY(sx * (Math.PI / 2));
+    g.translate(sx * 0.09, h + r * 0.8, 0);
+    return g;
+  });
+  const tint = mergeGeometries(faces)!;
+  // Color blanco por vértice para que el material con vertexColors muestre la textura tal cual
+  const c = new Float32Array(tint.attributes.position.count * 3).fill(1);
+  tint.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return { base, tint };
 }
 
 function defs(): Record<PropType, PropDef> {
@@ -77,6 +138,8 @@ function defs(): Record<PropType, PropDef> {
     puestoFeria: { base: puesto.build(), tint: toldo },
     contenedor: { base: contBase, tint: cont.build() },
     muro: { base: muro },
+    guirnalda: { ...guirnalda(), emissive: true },
+    cartelMBC: { ...cartelPoste(), map: config.brand.locales.path + config.brand.locales.cartel },
   };
 }
 
@@ -90,6 +153,8 @@ const DEFAULT_TINT: Record<PropType, string> = {
   puestoFeria: '#E63946',
   contenedor: '#C8402F',
   muro: '#ffffff',
+  guirnalda: '#FFE2A0',
+  cartelMBC: '#ffffff',
 };
 
 const PER_SLOT: Record<PropType, number> = {
@@ -101,6 +166,8 @@ const PER_SLOT: Record<PropType, number> = {
   puestoFeria: 44,
   contenedor: 40,
   muro: 12,
+  guirnalda: 6,
+  cartelMBC: 6,
 };
 
 interface Entry {
@@ -133,7 +200,27 @@ export class PropInstancer {
       let tint: THREE.InstancedMesh | null = null;
       if (def.tint) {
         let mat = tintMat;
-        if (def.emissive) {
+        if (def.map) {
+          // Cara con textura de marca que se ilumina de noche; si falta el archivo queda gris oscura
+          const m = glowEmissive(
+            new THREE.MeshStandardMaterial({ vertexColors: true, color: '#3A332C', side: THREE.DoubleSide, transparent: true, alphaTest: 0.4, emissive: '#ffffff' }),
+            0.15,
+            0.85,
+          );
+          new THREE.TextureLoader().load(
+            def.map,
+            (t) => {
+              t.colorSpace = THREE.SRGBColorSpace;
+              m.map = m.emissiveMap = t;
+              m.color.set('#ffffff');
+              m.needsUpdate = true;
+            },
+            undefined,
+            // TODO(brand): falta el recorte del cartel en public/assets/brand/locales/
+            () => console.warn(`[brand] Falta ${def.map}`),
+          );
+          mat = m;
+        } else if (def.emissive) {
           mat = new THREE.MeshStandardMaterial({ vertexColors: true, emissive: '#FFC86B', emissiveIntensity: 0.2 });
           this.emissiveMats.push(mat);
         }

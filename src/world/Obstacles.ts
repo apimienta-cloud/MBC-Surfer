@@ -4,7 +4,7 @@ import { Box, HitResult, intersects, makeBox, overlap } from '../game/Collision'
 import type { Player } from '../game/Player';
 import type { Collectibles } from './Collectibles';
 import type { ZoneSystem } from './zones';
-import { buildObstacleModel, buildRamp } from './ObstacleModels';
+import { buildObstacleModel, buildRamp, obstacleExtras } from './ObstacleModels';
 import { kitMaterial } from './landmarks/kit';
 
 const O = config.obstacles;
@@ -95,6 +95,8 @@ export class Obstacles {
     let o = this.pool.get(key)?.pop();
     if (!o) {
       const mesh = new THREE.Mesh(this.geoFor(variant, livery), kitMaterial);
+      const extras = obstacleExtras(variant);
+      if (extras) mesh.add(extras);
       this.group.add(mesh);
       let rampMesh: THREE.Mesh | null = null;
       if (kind === 'bondi') {

@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { Kit } from './kit';
 
-export type BuildingStyle = 'colonial' | 'apartment' | 'office' | 'warehouse' | 'house';
+export type BuildingStyle = 'colonial' | 'apartment' | 'office' | 'warehouse' | 'house' | 'corten';
 
 export interface BuildingVariant {
   geo: THREE.BufferGeometry;
@@ -16,6 +16,7 @@ const PALETTES: Record<BuildingStyle, string[]> = {
   office: ['#C9C5BB', '#B7BEC4', '#D6CDB8', '#A8B3BB', '#CDB89A'],
   warehouse: ['#9AA5A8', '#B5674E', '#7F8C8D', '#C7B48F'],
   house: ['#EAD9B8', '#D8B4A0', '#C9D3B8', '#E6E0D0'],
+  corten: ['#B5562F', '#A64B28', '#C0612F'],
 };
 
 /**
@@ -86,6 +87,25 @@ export function buildBuilding(style: BuildingStyle, r: () => number): BuildingVa
       k.box(d, h, w, color);
       k.prism(w, 2.5, d, color, 0, h, 0);
       for (let z = -w / 2 + 3; z < w / 2 - 2; z += 6) k.box(0.15, 4.2, 3.6, '#5B5F60', d / 2 + 0.02, 0, z);
+      break;
+    }
+    case 'corten': {
+      // Cubo de chapa corrugada oxidada con ventanales, como el galpón de MBC
+      w = 12 + Math.floor(r() * 6);
+      d = 12;
+      h = 8 + Math.floor(r() * 4);
+      k.box(d, h, w, color);
+      for (let y = 0.4; y < h; y += 0.45) {
+        k.box(d + 0.06, 0.08, w + 0.06, '#7E3519', 0, y, 0);
+      }
+      k.box(d + 0.3, 0.35, w + 0.3, '#6E3018', 0, h, 0);
+      const bays = Math.max(1, Math.floor(w / 6));
+      for (let b = 0; b < bays; b++) {
+        const z = -w / 2 + (w * (b + 0.5)) / bays;
+        k.box(0.12, h * 0.62, (w / bays) * 0.7, '#3B4A52', d / 2 + 0.05, 0.8, z);
+        for (let i = 0; i <= 4; i++) k.box(0.16, h * 0.62, 0.1, '#2A2A2A', d / 2 + 0.08, 0.8, z - (w / bays) * 0.35 + (i * (w / bays) * 0.7) / 4);
+      }
+      k.windows('z', w / 2 + 0.05, -d / 2 + 2, d / 2 - 2, 0.8, h * 0.7, 2, 1, '#3B4A52', d / 3, h * 0.55);
       break;
     }
     case 'house': {

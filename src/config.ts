@@ -11,13 +11,14 @@ export interface MissionDef {
   stat: MissionStat;
   target: number;
 }
-export type ZoneId = 'ciudadVieja' | 'rambla' | 'pocitos' | 'centro' | 'tresCruces' | 'puerto' | 'tristanNarvaja';
+export type ZoneId = 'paseoMBC' | 'ciudadVieja' | 'rambla' | 'pocitos' | 'centro' | 'tresCruces' | 'puerto' | 'tristanNarvaja';
 
 /** Variantes visuales de obstáculos (ver world/ObstacleModels.ts). */
 export type ObstacleVariant =
   | 'contenedor' | 'cajon' | 'conitos' | 'mateTermo'
   | 'vallaElevada' | 'cartel' | 'gaviotas'
   | 'puesto' | 'chorizos' | 'vallaObra'
+  | 'barriles' | 'mesaPicnic' | 'cartelColgante' | 'barraMBC'
   | 'bondi';
 
 interface ZoneObstacles {
@@ -247,8 +248,9 @@ export const config = {
   // Montevideo por zonas: cada ~800 m cambia, con un chunk de transición entre medio
   zones: {
     lengthMeters: 800,
-    order: ['ciudadVieja', 'rambla', 'pocitos', 'centro', 'tresCruces', 'puerto', 'tristanNarvaja'] as ZoneId[],
+    order: ['paseoMBC', 'ciudadVieja', 'rambla', 'pocitos', 'centro', 'tresCruces', 'puerto', 'tristanNarvaja'] as ZoneId[],
     names: {
+      paseoMBC: 'Paseo MBC',
       ciudadVieja: 'Ciudad Vieja',
       rambla: 'Rambla',
       pocitos: 'Pocitos · Parque Rodó',
@@ -259,6 +261,7 @@ export const config = {
     } as Record<ZoneId, string>,
     // Cielo de cada zona: arriba y horizonte (la niebla usa el horizonte)
     sky: {
+      paseoMBC: { top: '#3E5C8A', horizon: '#F6B05A' }, // tardecita dorada, como en las fotos de los patios
       ciudadVieja: { top: '#6FA8DC', horizon: '#F6D8A8' },
       rambla: { top: '#5B3A8C', horizon: '#F28C38' }, // atardecer naranja-violeta
       pocitos: { top: '#5E9FD6', horizon: '#F9C98E' },
@@ -269,6 +272,9 @@ export const config = {
     } as Record<ZoneId, { top: string; horizon: string }>,
     night: { top: '#0E1630', horizon: '#3B2F5C', maxDarkness: 0.72 },
     obstacles: {
+      paseoMBC: {
+        variants: { low: ['barriles', 'mesaPicnic', 'cajon'], high: ['cartelColgante', 'cartelColgante', 'vallaElevada'], block: ['barraMBC', 'barraMBC', 'chorizos'] },
+      },
       ciudadVieja: {
         variants: { low: ['contenedor', 'cajon', 'conitos'], high: ['vallaElevada', 'cartel'], block: ['chorizos', 'vallaObra'] },
       },
