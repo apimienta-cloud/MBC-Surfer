@@ -104,3 +104,17 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
   - Del galpón se recortó el cartel de un local vecino que aparece en el borde.
 - **Ubicación en el mapa:** la Casa MBC va en Pocitos porque la foto muestra la esquina de Bv. España y Dr. Enrique Muñoz. El galpón va en Puerto/Aguada por su estética industrial; si está en otra zona, se mueve cambiando una línea en `zones/`.
 - **De noche:** guirnaldas, carteles, ventanales y bañados de luz usan materiales registrados en `glowEmissive` / `glowOpacity` (`landmarks/kit.ts`), que el ChunkManager prende según la oscuridad del cielo.
+
+## Skins con los productos reales de MBC
+
+- Las 4 skins genéricas pasan a ser los productos reales, sacados de las fotos de producto:
+  - **Porrón MBC** (gratis).
+  - **Latas Blonde Ale, Session IPA, Red Ale y Honey.**
+  - **Pinta MBC.**
+  - **Botellón recargable.**
+- **Latas:** la etiqueta real se "desenrolla" del frente de cada lata (cada columna de la textura es un ángulo del cilindro), se repite en el frente y en la espalda (la que ve la cámara), y el resto se rellena con el color de la lata y la franja negra.
+- **Vidrio (porrón, botellón, pinta):** el print se hizo con las letras del **logo oficial** (`mbc-logo.png`), no con el recorte de la foto: los reflejos del vidrio ensuciaban el recorte. Va en blanco horizontal en las botellas y en negro vertical en la pinta, como en los productos.
+- **Formas nuevas:** `pinta` (vaso recto que se angosta abajo) y `growler` (botellón con asa y tapa negra). `chopp` y `litro` siguen disponibles en el código.
+- **Compras guardadas:** las skins con ids viejos se migran (`config.skinRenames`: lata → blonde, chopp → pinta, litro → botellon), así nadie pierde lo que compró.
+- **Pantalla de skins:** cada tarjeta muestra la foto del producto (miniaturas de ~6 KB).
+- **Gigantografías nuevas:** las 4 latas, latas y botella sobre fondo claro, y el botellón con la pinta.

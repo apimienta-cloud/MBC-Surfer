@@ -11,15 +11,20 @@ interface Profile {
   neckR: number;
   neckH: number;
   cap: boolean;
-  glass: boolean; // chopp: vidrio translúcido con manija
+  glass: boolean; // chopp / pinta: vidrio translúcido
   metal: boolean; // lata
+  handle?: 'mug' | 'growler';
+  taper?: number; // radio de abajo / radio de arriba
+  capColor?: string;
 }
 
 const PROFILES: Record<SkinShape, Profile> = {
   porron: { bodyR: 0.32, bodyH: 0.72, shoulderH: 0.2, neckR: 0.13, neckH: 0.2, cap: true, glass: false, metal: false },
   litro: { bodyR: 0.3, bodyH: 0.86, shoulderH: 0.22, neckR: 0.12, neckH: 0.26, cap: true, glass: false, metal: false },
   lata: { bodyR: 0.3, bodyH: 0.92, shoulderH: 0.06, neckR: 0.26, neckH: 0.03, cap: false, glass: false, metal: true },
-  chopp: { bodyR: 0.34, bodyH: 0.84, shoulderH: 0, neckR: 0.34, neckH: 0, cap: false, glass: true, metal: false },
+  chopp: { bodyR: 0.34, bodyH: 0.84, shoulderH: 0, neckR: 0.34, neckH: 0, cap: false, glass: true, metal: false, handle: 'mug' },
+  pinta: { bodyR: 0.34, bodyH: 0.9, shoulderH: 0, neckR: 0.34, neckH: 0, cap: false, glass: true, metal: false, taper: 0.8 },
+  growler: { bodyR: 0.35, bodyH: 0.72, shoulderH: 0.24, neckR: 0.13, neckH: 0.12, cap: true, glass: false, metal: false, handle: 'growler', capColor: '#1E1E1E' },
 };
 
 export type Expression = 'run' | 'jump' | 'panic';
@@ -97,7 +102,7 @@ export class Birra {
     const whiteMat = new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.4 });
 
     // Cuerpo
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(pr.bodyR, pr.bodyR * 0.97, pr.bodyH, 20), bottleMat);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(pr.bodyR, pr.bodyR * (pr.taper ?? 0.97), pr.bodyH, 20), bottleMat);
     body.position.y = legL + pr.bodyH / 2;
     this.squash.add(body);
     if (pr.shoulderH > 0) {
@@ -117,27 +122,25 @@ export class Birra {
       rim.position.y = this.topY;
       this.squash.add(rim);
     }
-    if (pr.glass) {
+    if (pr.handle === 'mug') {
       // Manija del chopp (del lado derecho)
       const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 8, 16, Math.PI), bottleMat);
       handle.rotation.z = -Math.PI / 2;
       handle.position.set(pr.bodyR, legL + pr.bodyH / 2, 0);
       this.squash.add(handle);
+    } else if (pr.handle === 'growler') {
+      // Asa del botellón, entre el hombro y el cuello
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.04, 8, 16, Math.PI * 1.2), bottleMat);
+      handle.rotation.z = -Math.PI * 0.6;
+      handle.position.set(pr.bodyR * 0.62, bodyTop + 0.1, 0);
+      this.squash.add(handle);
     }
 
-    // Etiqueta: banda curva con el logo de la marca (o color liso)
-    const labelH = 0.3;
+    // Etiqueta: la del producto real si la skin la tiene; si no, banda con el logo (o color liso)
     const eyesY = bodyTop - 0.17;
     const mouthY = eyesY - 0.115;
     const labelTop = Math.min(mouthY - 0.06, legL + pr.bodyH * 0.62);
-    if (!pr.glass) {
-      const label = new THREE.Mesh(
-        new THREE.CylinderGeometry(pr.bodyR + 0.006, pr.bodyR + 0.006, labelH, 24, 1, true, -Math.PI / 2, Math.PI * 2),
-        new THREE.MeshStandardMaterial({ map: makeLabelTexture(), roughness: 0.6 }),
-      );
-      label.position.y = labelTop - labelH / 2;
-      this.squash.add(label);
-    }
+    this.addLabel(skin, pr, legL, labelTop);
 
     // Tapita dorada con bordecito dentado, apoyada arriba de la espuma como un sombrerito
     const foamY = this.topY + 0.02;
@@ -164,11 +167,12 @@ export class Birra {
     this.foamBalls.push(top);
     if (pr.cap) {
       const cap = new THREE.Group();
-      cap.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 18), goldMat));
+      const capMat = pr.capColor ? new THREE.MeshStandardMaterial({ color: pr.capColor, roughness: 0.5 }) : goldMat;
+      cap.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 18), capMat));
       const tooth = new THREE.BoxGeometry(0.035, 0.06, 0.03);
       for (let i = 0; i < 14; i++) {
         const a = (i / 14) * Math.PI * 2;
-        const t = new THREE.Mesh(tooth, goldMat);
+        const t = new THREE.Mesh(tooth, capMat);
         t.position.set(Math.cos(a) * 0.155, -0.012, Math.sin(a) * 0.155);
         t.rotation.y = -a;
         cap.add(t);
@@ -235,6 +239,39 @@ export class Birra {
       this.legs.push(leg);
     }
     this.setExpression('run');
+  }
+
+  /**
+   * Etiqueta curva alrededor del cuerpo. u=0.25 queda en la espalda (la ve la cámara) y u=0.75 al frente.
+   * - 'wrap' (latas): cubre todo el cuerpo con la etiqueta real.
+   * - 'print' (vidrio): letras impresas sobre fondo transparente.
+   * - sin etiqueta: banda con el logo de la marca, como antes.
+   */
+  private addLabel(skin: SkinDef, pr: Profile, legL: number, labelTop: number): void {
+    let h = 0.3;
+    let y = labelTop - h / 2;
+    let mat: THREE.MeshStandardMaterial;
+    if (skin.label && skin.labelMode === 'wrap') {
+      h = pr.bodyH - 0.04;
+      y = legL + pr.bodyH / 2;
+      mat = new THREE.MeshStandardMaterial({ color: skin.color, roughness: 0.4, metalness: 0.15 });
+    } else if (skin.label) {
+      if (pr.glass) {
+        h = pr.bodyH * 0.86;
+        y = legL + pr.bodyH / 2;
+      }
+      mat = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.35, roughness: 0.5, opacity: 0 });
+    } else {
+      if (pr.glass) return;
+      mat = new THREE.MeshStandardMaterial({ map: makeLabelTexture(), roughness: 0.6 });
+    }
+    if (skin.label) loadProductTexture(skin.label, mat);
+    // El radio de la etiqueta acompaña la forma del cuerpo (las pintas se angostan abajo)
+    const tp = pr.taper ?? 0.97;
+    const rAt = (yy: number): number => pr.bodyR * (tp + (1 - tp) * ((yy - legL) / pr.bodyH)) + 0.006;
+    const label = new THREE.Mesh(new THREE.CylinderGeometry(rAt(y + h / 2), rAt(y - h / 2), h, 28, 1, true, -Math.PI / 2, Math.PI * 2), mat);
+    label.position.y = y;
+    this.squash.add(label);
   }
 
   /** Altura del tope (para emitir espuma). */
@@ -352,6 +389,32 @@ export class Birra {
       b.position.set(base.x + w, base.y + Math.abs(w) + bounce * 0.3, base.z - (running ? 0.015 : 0));
     });
   }
+}
+
+const productTextures = new Map<string, THREE.Texture>();
+
+/** Carga la etiqueta de un producto (cacheada). Si falta el archivo queda el color de la skin. */
+function loadProductTexture(file: string, mat: THREE.MeshStandardMaterial): void {
+  const apply = (t: THREE.Texture): void => {
+    mat.map = t;
+    mat.color.set('#ffffff');
+    mat.opacity = 1;
+    mat.needsUpdate = true;
+  };
+  const cached = productTextures.get(file);
+  if (cached) return apply(cached);
+  new THREE.TextureLoader().load(
+    config.productsPath + file,
+    (t) => {
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      productTextures.set(file, t);
+      apply(t);
+    },
+    undefined,
+    // TODO(brand): falta la etiqueta del producto en public/assets/brand/productos/
+    () => console.warn(`[brand] Falta ${config.productsPath}${file}`),
+  );
 }
 
 /** Banda de etiqueta: logo de la marca dos veces (frente y espalda) o color liso si no hay logo. */

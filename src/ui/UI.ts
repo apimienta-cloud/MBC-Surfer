@@ -284,8 +284,12 @@ export class UI {
         const sel = k.id === selected;
         const label = sel ? T.inUse : has ? T.use : `${T.buy} · ${fmt(k.price)}`;
         const cls = sel ? 'selected' : has ? '' : total >= k.price ? 'buyable' : 'locked';
+        // Foto del producto real si la hay; si no, silueta CSS del envase
+        const pic = k.thumb
+          ? `<img class="thumb" src="${config.productsPath}${k.thumb}" alt="">`
+          : `<span class="swatch ${k.shape}" style="--c:${k.color}"></span>`;
         return `<button class="skin-card ${cls}" data-skin="${k.id}">
-          <span class="swatch ${k.shape}" style="--c:${k.color}"></span>
+          ${pic}
           <b>${k.name}</b><small>${label}</small></button>`;
       })
       .join('');

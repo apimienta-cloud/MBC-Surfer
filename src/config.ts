@@ -2,7 +2,7 @@
 // Unidades: metros, segundos, metros/segundo.
 
 export type ObstacleKind = 'low' | 'high' | 'block' | 'bondi';
-export type SkinShape = 'porron' | 'lata' | 'chopp' | 'litro';
+export type SkinShape = 'porron' | 'lata' | 'chopp' | 'litro' | 'pinta' | 'growler';
 export type PowerUpType = 'feriado' | 'happyHour' | 'choppDoble' | 'tapitaTurbo';
 export type MissionStat = 'coins' | 'rolls' | 'jumps' | 'powerups' | 'roofs' | 'runMeters' | 'centenario';
 export interface MissionDef {
@@ -30,6 +30,11 @@ export interface SkinDef {
   shape: SkinShape;
   price: number;
   color: string;
+  /** Textura de etiqueta en public/assets/brand/productos/: 'wrap' envuelve todo el cuerpo (latas), 'print' es transparente (vidrio). */
+  label?: string;
+  labelMode?: 'wrap' | 'print';
+  /** Foto del producto para la pantalla de skins. */
+  thumb?: string;
 }
 
 export const config = {
@@ -51,7 +56,15 @@ export const config = {
       path: 'assets/brand/locales/',
       cartel: 'cartel-mbc.png', // cartel redondo del poste
       letras: 'letras-mbc.png', // letras luminosas del escenario
-      billboards: ['gigantografia-canillas.jpg', 'gigantografia-pared.jpg', 'gigantografia-galpon.jpg', 'gigantografia-casa.jpg'],
+      billboards: [
+        'gigantografia-canillas.jpg',
+        'gigantografia-pared.jpg',
+        'gigantografia-galpon.jpg',
+        'gigantografia-casa.jpg',
+        'gigantografia-latas.jpg',
+        'gigantografia-productos.jpg',
+        'gigantografia-botellon.jpg',
+      ],
       facadeName: ['MONTEVIDEO', 'BEER COMPANY'] as [string, string],
     },
   },
@@ -117,14 +130,19 @@ export const config = {
     glanceTime: 0.55,
   },
 
-  // Skins desbloqueables. Nombres y precios los define la marca.
-  // TODO(brand): reemplazar nombres por las variedades reales de MBC.
+  // Skins desbloqueables: los productos reales de MBC (etiquetas recortadas de las fotos de la marca)
+  productsPath: 'assets/brand/productos/',
   skins: [
-    { id: 'porron', name: 'Porrón', shape: 'porron', price: 0, color: '#C8862B' },
-    { id: 'lata', name: 'Lata', shape: 'lata', price: 300, color: '#B9C3CB' },
-    { id: 'chopp', name: 'Chopp', shape: 'chopp', price: 700, color: '#F2B134' },
-    { id: 'litro', name: 'Botella de litro', shape: 'litro', price: 1200, color: '#8E5A1E' },
+    { id: 'porron', name: 'Porrón MBC', shape: 'porron', price: 0, color: '#C8862B', label: 'print-botella.png', labelMode: 'print' },
+    { id: 'blonde', name: 'Blonde Ale', shape: 'lata', price: 150, color: '#F2AE14', label: 'lata-blonde.jpg', labelMode: 'wrap', thumb: 'thumb-blonde.jpg' },
+    { id: 'session', name: 'Session IPA', shape: 'lata', price: 300, color: '#9BCB2E', label: 'lata-session.jpg', labelMode: 'wrap', thumb: 'thumb-session.jpg' },
+    { id: 'red', name: 'Red Ale', shape: 'lata', price: 450, color: '#C8322A', label: 'lata-red.jpg', labelMode: 'wrap', thumb: 'thumb-red.jpg' },
+    { id: 'honey', name: 'Honey', shape: 'lata', price: 600, color: '#EE7A22', label: 'lata-honey.jpg', labelMode: 'wrap', thumb: 'thumb-honey.jpg' },
+    { id: 'pinta', name: 'Pinta MBC', shape: 'pinta', price: 800, color: '#E39A2D', label: 'print-pinta.png', labelMode: 'print', thumb: 'thumb-pinta.jpg' },
+    { id: 'botellon', name: 'Botellón recargable', shape: 'growler', price: 1200, color: '#7A4210', label: 'print-botella.png', labelMode: 'print', thumb: 'thumb-botellon.jpg' },
   ] as SkinDef[],
+  // Ids de skins de versiones anteriores → los nuevos (para no perder compras guardadas)
+  skinRenames: { lata: 'blonde', chopp: 'pinta', litro: 'botellon' } as Record<string, string>,
 
   particles: {
     foamPool: 160,

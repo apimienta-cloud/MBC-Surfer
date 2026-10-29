@@ -302,7 +302,9 @@ h2 { font: 800 34px/1.1 var(--display); }
 @keyframes fall { to { transform: translateY(460px) rotate(540deg); opacity: 0.2; } }
 .screen-skins, .screen-missions { background: rgba(30, 58, 95, 0.82); }
 .wallet { font: 800 18px/1 var(--sans); }
-.skin-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(420px, 100%); }
+.skin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; width: min(480px, 100%); }
+.screen-skins { justify-content: flex-start; overflow-y: auto; padding-top: calc(28px + env(safe-area-inset-top)); }
+.skin-card .thumb { display: block; height: 84px; width: 100%; object-fit: contain; border-radius: 8px; background: #2b2b2b; }
 .skin-card {
   display: flex;
   flex-direction: column;
@@ -325,6 +327,8 @@ h2 { font: 800 34px/1.1 var(--display); }
 .swatch.porron { clip-path: polygon(35% 0, 65% 0, 65% 25%, 100% 42%, 100% 100%, 0 100%, 0 42%, 35% 25%); }
 .swatch.litro { height: 64px; width: 24px; clip-path: polygon(38% 0, 62% 0, 62% 30%, 100% 46%, 100% 100%, 0 100%, 0 46%, 38% 30%); }
 .swatch.lata { width: 30px; height: 50px; border-radius: 6px; }
+.swatch.pinta { width: 32px; height: 52px; border-radius: 3px 3px 8px 8px; clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%); }
+.swatch.growler { width: 36px; height: 56px; clip-path: polygon(38% 0, 62% 0, 62% 18%, 100% 38%, 100% 100%, 0 100%, 0 38%, 38% 18%); }
 .swatch.chopp { width: 34px; height: 46px; border-radius: 4px 4px 8px 8px; box-shadow: 10px 6px 0 -4px var(--c); }
 .mission-list { display: flex; flex-direction: column; gap: 10px; width: min(420px, 100%); }
 .mission {

@@ -82,6 +82,10 @@ export class Game {
     this.scene.add(this.chunks.group, this.obstacles.group, this.coins.mesh, this.powerups.group, this.player.root, this.chaser.root, this.particles.group);
     this.obstacles.powerSpawner = (lane, s) => this.powerups.spawn(this.powerups.randomType(), lane, s);
 
+    // Skins renombradas en versiones anteriores: se conservan las compras
+    const ren = config.skinRenames;
+    this.save.skins = [...new Set(this.save.skins.map((id) => ren[id] ?? id))];
+    this.save.skin = ren[this.save.skin] ?? this.save.skin;
     // Skins: las gratis vienen desbloqueadas; si la guardada no existe se usa la primera
     for (const k of config.skins) if (k.price === 0 && !this.save.skins.includes(k.id)) this.save.skins.push(k.id);
     if (!config.skins.some((k) => k.id === this.save.skin)) this.save.skin = config.skins[0].id;
