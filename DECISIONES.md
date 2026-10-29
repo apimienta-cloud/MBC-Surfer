@@ -1,0 +1,84 @@
+# Decisiones de diseño
+
+Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md).
+
+## Fase 1: prototipo con cajas
+
+- **Espacio de pista:** la lógica trabaja en `s` (metros recorridos) con `s = -z` en el mundo. La birra avanza de verdad (no se mueve el mundo); a las distancias de una partida la precisión de float alcanza.
+- **Choques:** AABB. Se distingue por dónde entró la birra al obstáculo en el paso anterior:
+  - **De frente** (antes no había solapamiento en `s`) = choque frontal, game over.
+  - **De costado** (cambio de carril contra algo) = rebota al carril de origen y tropieza.
+  - **Roce:** si el solapamiento lateral es chico (< `grazeOverlap`) o el bajo se toca apenas en el borde superior (< `lowGrazeHeight`), es tropiezo y no choque.
+  - Si la birra está casi a la altura de la tapa (< `stepUp`), se sube en vez de chocar. Sirve para el final de la rampa y para caídas tardías sobre obstáculos bajos.
+- **Superficies:** se puede caer y correr arriba de bajos, bloques y bondis (techo); los altos (valla elevada) no tienen superficie.
+- **Bondi que viene de frente:** se queda quieto hasta que la birra está a `activateDistance` y recién ahí arranca. Al generarlo se ubica más adelante, para que lo que recorra caiga dentro del tramo que el generador marca como ocupado.
+- **Camino garantizado:** el generador lleva el conjunto de carriles donde se puede estar vivo. Antes de cada fila lo expande con cambios de carril posibles (sin atravesar bondis) y exige que cada grupo conectado tenga al menos un carril pasable (libre, bajo o alto). El techo de los bondis cuenta como bonus, no como camino garantizado.
+  - Chequeo automático en `src/dev/validateGenerator.ts`: corre en la consola del navegador con el dev server; se probaron 40 partidas de 6 km sin filas imposibles.
+- **El Lunes en Fase 1:** caja roja con la lógica completa (intro de 3 s, se acerca 6 s tras un tropiezo, segundo tropiezo = te agarra). En Fase 2 se reemplaza el modelo y se suman globos y animación de captura.
+- **Tropiezo durante la intro:** como el Lunes arranca pegado, tropezar en los primeros 3 s ya te agarra.
+- **Logo/ficha:** el archivo que mandó la marca es 1920×1080 con fondo naranja (no transparente). Se guardó igual como `mbc-logo.png` y `ficha-mbc.png`; la fichita recorta un cuadrado central (`brand.fichaCropScale`). Cuando llegue una ficha cuadrada o un PNG transparente, se reemplaza el archivo y listo.
+- **Colores de marca:** `config.brand.colors` queda vacío con `TODO(brand)` hasta tener los hex oficiales; mientras tanto se usa la paleta de la spec.
+- **FOV en vertical:** además del FOV que se abre con la velocidad, hay un FOV horizontal mínimo (`camera.minHorizontalFov`) para que en celular entren los 3 carriles.
+- **Build:** subí `chunkSizeWarningLimit` a 800 kB porque Three.js solo ya pasa el límite por defecto de 500 kB y el aviso saldría siempre.
+- **Guardado:** ya en Fase 1 se guardan récord y fichitas acumuladas (es poco código y deja probado el `try/catch`).
+
+## Fase 2: personajes
+
+- **El Lunes mira a cámara:** su frente (la hoja que dice LUNES, con la cara) apunta hacia +z, a la cámara, aunque persiga a la birra hacia -z. Si mirara a la birra, el jugador le vería siempre la espalda. Como las zancadas son simétricas, no se nota que "corre de espaldas".
+- **El Lunes corre al costado:** mientras persigue va corrido `chaser.sideOffset` hacia el centro de la calle para no tapar a la birra. Se acerca a `nearGap` = 2.6 m: lo bastante lejos de la cámara para que se le vea la cara, y lo bastante cerca para que intimide.
+- **La birra se ve de espaldas** (como en todo runner): la etiqueta con el logo da la vuelta completa, así el logo se ve desde la cámara. La cara está al frente y se ve en el menú (la cámara del menú mira a la birra de frente), cuando rueda, cuando tropieza y cuando mira para atrás (lo hace cada 2–4 s si el Lunes está cerca).
+- **Rodar:** la botella se acuesta con el eje a lo ancho de la pista y gira sobre su eje según la velocidad. La caja de colisión sigue siendo la de `player.rollHeight`.
+- **Número del día del Lunes:** por defecto es el número del próximo lunes (`chaser.dayNumber: 'auto'`); se puede fijar en config.
+- **Animación de captura:** nuevo estado `caught`. El Lunes alcanza, salta y cae arriba de la birra (que queda aplastada y con cara de pánico), dice "¡Buen lunes!" y después cae la hoja de calendario de game over. El récord se guarda apenas te agarra, no al terminar la animación.
+- **Skins:** `models/Birra.ts` ya arma los 4 envases (porrón, lata, chopp, litro) a partir de un perfil de proporciones. La compra y elección de skins llegan en Fase 4. El chopp es de vidrio translúcido y no lleva etiqueta.
+- **Partículas** (`fx/Particles.ts`): espuma al saltar, aterrizar y tropezar; hojas de calendario detrás del Lunes; brillitos al juntar fichitas. Son 3 InstancedMesh con pool circular: si se llena, se pisa la partícula más vieja.
+- **Menú:** título arriba y botones abajo, para que la birra corra en el lugar en el medio de la pantalla. La transición al juego es un travelling de cámara.
+
+## Fase 3: Montevideo
+
+- **Zonas:** cada zona ocupa `round(800 / 60)` = 13 chunks y después viene uno de transición, con un cartel vial verde ("→ Rambla") y una mezcla neutra. El orden sale de `config.zones.order`, empieza siempre en Ciudad Vieja y se repite. Al entrar a una zona aparece un cartel con su nombre.
+- **Modelos con el Kit** (`world/landmarks/kit.ts`): cada modelo se arma con primitivas de Three.js y colores por vértice, y se fusiona en una sola geometría con un material compartido (sombreado plano). Eso da un draw call por landmark, edificio u obstáculo. Las geometrías se arman una sola vez y se reutilizan; un landmark se reemplaza por un `.glb` cambiando su builder en `landmarks/index.ts`.
+- **Props repetidos** (faroles, árboles, palmeras, sombrillas, puestos, contenedores, murito, pescadores): `InstancedMesh` global por tipo, con un rango de instancias por chunk. El toldo, la copa o el contenedor toman el color de la instancia.
+- **Landmarks visibles de lejos:**
+  - En el chunk de un landmark grande no hay edificios de ese lado (queda una plaza).
+  - Algunos se giran hacia la birra que se acerca (`angle`), por ejemplo las letras de MONTEVIDEO, que de canto no se leían.
+- **Horizonte:** el Cerro (Rambla), el Palacio Legislativo al fondo de 18 de Julio y la Torre de Antel (Puerto) son siluetas sin niebla que acompañan a la birra a distancia fija, teñidas con el color del horizonte. Aparecen y desaparecen con la zona. La Torre de Antel aparece también al costado de la calle en el Puerto.
+- **Escala:** los landmarks están achicados respecto a los reales (el Salvo mide ~60 m con antena, la Torre de los Homenajes ~40 m) para que entren en cuadro con la cámara baja del runner.
+- **Cielo:** degradé por zona (atardecer naranja-violeta en la Rambla); la niebla usa el color del horizonte. En el chunk de transición los colores se mezclan.
+- **Reloj:** HUD con "Domingo 18:00" que avanza 1 minuto cada 15 m. A las 23:59 (a ~5,4 km) se queda ahí. Con la hora va cayendo la noche, nunca del todo (`night.maxDarkness`), y se prenden los faroles.
+- **Obstáculos temáticos:** la variante visual depende de la zona (`config.zones.obstacles`); la caja de colisión sigue siendo la del tipo. Algunas zonas ajustan pesos: más altos en la Rambla (gaviotas), más bondis en 18 de Julio, más puestos en Tristán Narvaja.
+  - Los ómnibus usan 4 combinaciones de colores genéricas, sin nombres ni logos.
+  - El que viene de frente muestra la trompa y el estacionado la cola, con la rampa detrás.
+- **Humo de parrilla:** la chimenea del Mercado del Puerto emite partículas cuando la birra está cerca.
+- **Rendimiento:** quedaron ~130–180 draw calls y ~80–130k triángulos según la zona. Las ventanas son planos de 2 triángulos y las `InstancedMesh` solo dibujan hasta la última instancia usada. En Fase 5 se puede fusionar la decoración por chunk si hace falta.
+- **Herramienta de dev:** `src/dev/snap.ts` saca capturas en cualquier distancia para revisar zonas desde la consola.
+
+## Fase 4: juego completo
+
+- **Puntaje:** suma metros × multiplicador (x2 con Chopp doble) más 1 punto por fichita. El récord del menú es el puntaje; la mejor distancia también se guarda.
+- **Feriado:** al agarrarlo se guarda (uno solo) y se activa con doble tap, E o el botón del HUD. Si ya hay uno guardado, el siguiente se activa al toque. Es un escudo que dura 12 s o hasta absorber un choque; después del choque quedan 1,2 s de invulnerabilidad, y el Lunes se aleja.
+- **Tapita turbo:** el salto llega a ~4,5 m y deja caer arriba de bloques y bondis. Si caés desde arriba sobre algo alto, lo atravesás.
+- **Power-ups:** aparecen cada 240–420 m, entre dos filas y en un carril alcanzable.
+- **Misiones diarias** (opcionales en la spec): 3 por día, elegidas según la fecha. Cada una da 50 fichitas. "Corré X m" y "Pasá por el Centenario" se miden por partida; las demás se acumulan en el día.
+- **Skins:** se compran con las fichitas acumuladas. Las tarjetas muestran una silueta CSS del envase, y la birra del menú cambia al elegir.
+- **Sonido:** todo sintetizado con Web Audio. Si existe `public/assets/audio/musica.mp3`, se usa como música en lugar del loop sintetizado. El mute se guarda.
+- **Compartir:** usa la Web Share API; si no está disponible, copia el texto al portapapeles.
+
+## Fase 5: pulido y mobile
+
+- **Age gate activado por defecto** (`config.brand.ageGate: true`), porque es una marca de cerveza.
+  - El "sí" se guarda para no preguntar en cada visita.
+  - El "no" muestra un mensaje amable y el juego (canvas incluido) no se carga. No se recuerda: si recargás, vuelve a preguntar.
+- **Calidad adaptativa** (`config.quality`): con el promedio de fps por debajo de 48 durante ~2 s, baja la resolución interna 0,25 por escalón, hasta pixel ratio 1. Con más de 58 fps durante ~8 s, vuelve a subir. Ignora los saltos grandes (pestaña en segundo plano). Es la palanca más barata para celulares de gama media; la escena ya está entre 80k y 130k triángulos.
+- **Juice:**
+  - El contador de fichitas rebota al juntar.
+  - La cámara baja un toque al aterrizar.
+  - Shake chiquito al agarrar un power-up.
+  - Aviso "¡Superaste tu récord!" en plena partida.
+  - Las barras de power-ups se actualizan a 10 Hz, no en cada frame.
+- **Mobile:**
+  - Meta tags para pantalla completa al agregar a inicio (iOS y Android).
+  - El audio se habilita con el primer toque en cualquier lado (iOS lo exige).
+- **Deploy:** quedan listos `netlify.toml` y el workflow de GitHub Pages (`.github/workflows/deploy.yml`). No se publicó nada: hace falta la cuenta de la marca.
+- **Finales de línea:** `.gitattributes` fija LF para no mezclar CRLF en Windows.
+- **Fichitas en zigzag:** cuando la línea guía cambia a un carril vecino, cruza en diagonal entre dos filas (`coins.zigzagLength` m), y solo si ninguno de los dos carriles tiene un bondi en ese tramo. Las fichitas nunca caen dentro de un obstáculo: el cruce termina antes de la fila siguiente.
