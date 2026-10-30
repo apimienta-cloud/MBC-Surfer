@@ -2,6 +2,7 @@ import { config, SkinDef } from '../config';
 import { POWER_ICONS, SOUND_OFF, SOUND_ON } from './icons';
 import type { ActivePower } from '../world/PowerUps';
 import type { MissionView } from '../game/Missions';
+import type { RankEntry } from '../net/Ranking';
 
 const T = config.texts;
 
@@ -19,9 +20,12 @@ export interface UIHandlers {
   onBack: () => void;
   onSkin: (id: string) => void;
   onClick: () => void;
+  onOpenRanking: () => void;
+  onRankingJoin: (raw: string) => void;
+  onRankingChange: () => void;
 }
 
-export type Screen = 'menu' | 'playing' | 'paused' | 'caught' | 'gameover' | 'skins' | 'missions';
+export type Screen = 'menu' | 'playing' | 'paused' | 'caught' | 'gameover' | 'skins' | 'missions' | 'ranking';
 
 export interface GameOverInfo {
   score: number;
@@ -32,6 +36,7 @@ export interface GameOverInfo {
 }
 
 const fmt = (n: number): string => Math.floor(n).toLocaleString('es-UY');
+const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** HUD y menús en HTML/CSS superpuestos al canvas. */
 export class UI {
@@ -93,6 +98,7 @@ export class UI {
         <div class="menu-row">
           <button class="btn small" data-act="skins">${T.skins}</button>
           <button class="btn small" data-act="missions">${T.missions}</button>
+          <button class="btn small" data-act="ranking">${T.ranking}</button>
           <button class="btn icon" data-act="mute" aria-label="${T.sound}"></button>
         </div>
         <p class="hint">${isTouch ? T.controlsMobile : T.controlsDesktop}</p>
@@ -117,8 +123,10 @@ export class UI {
         <p class="big-score" data-id="score"></p>
         <p class="stats" data-id="stats"></p>
         <p class="muted" data-id="best"></p>
+        <p class="rank-line" data-id="rank"></p>
         <div class="confetti" data-id="confetti"></div>
       </div>
+      <button class="btn small rank-cta" data-act="ranking" data-id="rankCta">${T.rankingCta}</button>
       <button class="btn primary" data-act="restart">${T.rematch}</button>
       <div class="menu-row">
         <button class="btn small" data-act="share">${T.share}</button>
@@ -141,7 +149,28 @@ export class UI {
       <p class="hint">${T.missionsHint} · +${config.missions.reward} ${T.coins} c/u</p>
       <button class="btn" data-act="back">${T.back}</button>`;
 
-    this.screens = { menu, paused: pause, gameover: over, skins, missions };
+    // ---------- Ranking ----------
+    const ranking = this.panel('ranking');
+    ranking.innerHTML = `
+      <h2>${T.ranking}</h2>
+      <form class="rank-join" data-id="join" novalidate>
+        <label for="rank-ig">${T.rankingJoin}</label>
+        <div class="rank-input"><span>@</span><input id="rank-ig" data-id="ig" maxlength="80" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="${T.rankingPlaceholder}"></div>
+        <button class="btn small primary" type="submit">${T.rankingSave}</button>
+        <small>${T.rankingPublic}</small>
+        <p class="rank-msg" data-id="joinMsg"></p>
+      </form>
+      <p class="rank-me" data-id="me"></p>
+      <p class="hint" data-id="status"></p>
+      <ol class="rank-list" data-id="list"></ol>
+      <button class="btn" data-act="back">${T.back}</button>`;
+    ranking.querySelector('form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      h.onClick();
+      h.onRankingJoin((this.q(ranking, 'ig') as HTMLInputElement).value);
+    });
+
+    this.screens = { menu, paused: pause, gameover: over, skins, missions, ranking };
 
     const acts: Record<string, () => void> = {
       play: h.onPlay,
@@ -155,6 +184,8 @@ export class UI {
       skins: h.onOpenSkins,
       missions: h.onOpenMissions,
       back: h.onBack,
+      ranking: h.onOpenRanking,
+      rankChange: h.onRankingChange,
     };
     root.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-skin]');
@@ -295,6 +326,36 @@ export class UI {
           ${pic}
           <b>${k.name}</b><small>${label}</small></button>`;
       })
+      .join('');
+  }
+
+  /** Debajo del resultado: el puesto en el ranking, o el botón para anotarse. */
+  setGameOverRank(text: string, showCta: boolean): void {
+    const s = this.screens.gameover;
+    this.q(s, 'rank').textContent = text;
+    this.q(s, 'rankCta').classList.toggle('visible', showCta);
+  }
+
+  /** Formulario para anotarse o "Jugás como @usuario". */
+  setRankingUser(handle: string, msg = ''): void {
+    const s = this.screens.ranking;
+    this.q(s, 'join').classList.toggle('visible', !handle);
+    const me = this.q(s, 'me');
+    me.classList.toggle('visible', Boolean(handle));
+    me.innerHTML = handle ? `${T.rankingYou} <b>@${esc(handle)}</b> <button class="link" data-act="rankChange">${T.rankingChange}</button>` : '';
+    this.q(s, 'joinMsg').textContent = msg;
+  }
+
+  setRankingStatus(text: string): void {
+    this.q(this.screens.ranking, 'status').textContent = text;
+  }
+
+  renderRanking(list: RankEntry[], me: string): void {
+    this.q(this.screens.ranking, 'list').innerHTML = list
+      .map(
+        (r, i) => `<li class="${r.handle === me ? 'me' : ''} ${i > 0 && r.pos > list[i - 1].pos + 1 ? 'gap' : ''}">
+          <span class="pos">${r.pos}</span><b>@${esc(r.handle)}</b><span class="pts">${fmt(r.score)}</span></li>`,
+      )
       .join('');
   }
 

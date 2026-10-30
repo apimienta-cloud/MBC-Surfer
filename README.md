@@ -50,3 +50,12 @@ const v = await import('/src/dev/validateGenerator.ts'); v.validate(30, 6000)
 // Capturas en distintas distancias para revisar zonas y landmarks
 const s = await import('/src/dev/snap.ts'); await s.grid([0, 900, 1800, 2600]); s.close()
 ```
+
+## Ranking online (Supabase)
+
+Mientras `config.ranking` esté vacío, el ranking funciona solo en cada dispositivo. Para conectarlo:
+
+1. Crear un proyecto gratis en [supabase.com](https://supabase.com).
+2. En **SQL Editor**, pegar y ejecutar [`supabase/ranking.sql`](supabase/ranking.sql).
+3. En **Project Settings → API**, copiar la *Project URL* y la clave *anon public*, y pegarlas en `config.ranking.supabaseUrl` y `config.ranking.supabaseAnonKey`. La clave anon es pública: la tabla no se puede tocar directo, todo pasa por las funciones del SQL.
+4. Para ver o borrar jugadores: **Table Editor → players**.

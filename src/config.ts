@@ -284,7 +284,7 @@ export const config = {
       puerto: { top: '#6A8FB8', horizon: '#E2C6A6' },
       tristanNarvaja: { top: '#76AEE0', horizon: '#F3DDB4' },
     } as Record<ZoneId, { top: string; horizon: string }>,
-    night: { top: '#0E1630', horizon: '#3B2F5C', maxDarkness: 0.72 },
+    night: { top: '#0E1630', horizon: '#3B2F5C', maxDarkness: 0.86, twilight: '#F28C4B' },
     obstacles: {
       paseoMBC: {
         variants: { low: ['barriles', 'mesaPicnic', 'cajon'], high: ['cartelColgante', 'cartelColgante', 'vallaElevada'], block: ['barraMBC', 'barraMBC', 'chorizos'] },
@@ -362,12 +362,25 @@ export const config = {
     text: 'Le escapé al lunes {m} metros por Montevideo 🍺',
   },
 
-  // Reloj del HUD: arranca el domingo a las 18:00 y avanza con la distancia hasta 23:59 (nunca llega el lunes)
+  // Ranking online: la gente se anota con su usuario de Instagram y sube su mejor puntaje.
+  // Usa Supabase (ver supabase/ranking.sql y README). Si url o anonKey están vacíos,
+  // el ranking funciona solo en este dispositivo.
+  ranking: {
+    supabaseUrl: '', // TODO(brand): https://<proyecto>.supabase.co
+    supabaseAnonKey: '', // TODO(brand): clave "anon public" del proyecto (es pública, va en el cliente)
+    top: 50,
+  },
+
+  // Reloj del HUD: arranca el jueves de noche y avanza con la distancia, pasando días y noches.
+  // El tiempo que falta para el lunes se reduce a la mitad cada `halfLifeMeters`: cuanto más cerca, más lento
+  // corre el reloj, así que el lunes nunca llega.
   clock: {
-    dayName: 'Domingo',
-    startMinutes: 18 * 60,
-    endMinutes: 23 * 60 + 59,
-    metersPerMinute: 15,
+    days: ['Jueves', 'Viernes', 'Sábado', 'Domingo'],
+    startMinutes: 21 * 60, // jueves 21:00
+    halfLifeMeters: 2800,
+    secondsUnderMinutes: 60, // en la última hora antes del lunes se muestran los segundos
+    dawn: [5.5, 7.5] as [number, number], // amanece entre estas horas
+    dusk: [18.5, 20.5] as [number, number], // anochece entre estas horas
   },
 
   texts: {
@@ -397,6 +410,22 @@ export const config = {
     copied: '¡Copiado! Pegalo donde quieras',
     skins: 'Skins',
     missions: 'Misiones',
+    ranking: 'Ranking',
+    rankingJoin: 'Anotate con tu usuario de Instagram',
+    rankingPlaceholder: 'tu_usuario',
+    rankingSave: 'Anotarme',
+    rankingPublic: 'Tu usuario y tu mejor puntaje se ven en el ranking público.',
+    rankingYou: 'Jugás como',
+    rankingChange: 'Cambiar',
+    rankingInvalid: 'Ese usuario no es válido: letras, números, puntos y guiones bajos (hasta 30).',
+    rankingTaken: 'Ese usuario ya lo anotó otra persona.',
+    rankingError: 'No se pudo conectar con el ranking. Probá de nuevo en un rato.',
+    rankingLoading: 'Cargando…',
+    rankingEmpty: 'Todavía no hay nadie. ¡Sé el primero!',
+    rankingLocal: 'Ranking de este dispositivo (el online todavía no está conectado).',
+    rankingPos: 'Estás #{n} en el ranking',
+    rankingSending: 'Subiendo tu puntaje…',
+    rankingCta: 'Anotate en el ranking',
     back: 'Volver',
     use: 'Usar',
     inUse: 'En uso',

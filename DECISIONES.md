@@ -149,3 +149,22 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
   - **Escenario:** público con los brazos arriba y pantalla LED con el logo.
 - **Gente:** figuras low-poly sin cara (sentadas en las mesas, paradas con un vaso), metidas en la geometría de cada local. Además, peatones instanciados en las veredas de casi todas las zonas (remeras de colores, un vaso en la mano).
 - **Un punto MBC en cada zona:** un patio cervecero en Ciudad Vieja, Rambla, 18 de Julio, Tres Cruces, Puerto y Tristán Narvaja. Pocitos ya tiene la Casa y el escenario.
+
+## Fichas derechas, del jueves al lunes que nunca llega y ranking con Instagram
+
+- **Fichas:** las tapas del cilindro traían la textura girada 90°. Se remapean las UV para que "MBC" quede derecho; la cara de atrás va espejada para que también se lea bien cuando la ficha gira.
+- **Reloj (reemplaza "Domingo 18:00 → 23:59"):**
+  - Arranca el **jueves a las 21:00** y pasa por viernes, sábado y domingo, con días y noches: amanece de 5:30 a 7:30 y anochece de 18:30 a 20:30, con el horizonte naranja en las transiciones.
+  - **El lunes nunca llega:** lo que falta para el lunes (00:00) se reduce a la mitad cada 2.800 m (`config.clock.halfLifeMeters`). El reloj se va frenando: a 1 km es viernes al mediodía, a 6 km domingo a la mañana y a 15 km domingo 22:10.
+  - En la última hora aparecen los segundos para que se note que el tiempo casi no avanza. El texto nunca pasa de "Domingo 23:59:59".
+  - De noche oscurece más que antes (`maxDarkness` de 0,72 a 0,86) para que se note el ciclo. Los faroles y los locales se prenden igual que antes.
+- **Ranking:**
+  - La gente se anota con su **usuario de Instagram**: se acepta "@usuario", "usuario" o el link del perfil, y se valida con las reglas de IG (letras, números, puntos y guiones bajos; hasta 30).
+  - Se sube el **mejor puntaje** de cada usuario. El game over muestra el puesto ("Estás #12 en el ranking") o, si no está anotado, el botón "Anotate en el ranking".
+  - **Servidor:** Supabase con plan gratis, para que el sitio siga siendo estático en GitHub Pages. La base y las funciones están en `supabase/ranking.sql`; la URL y la clave pública van en `config.ranking`.
+  - Mientras no esté conectado, el ranking funciona solo en el dispositivo y lo avisa en pantalla.
+  - **Nadie puede pisar el usuario de otro:** al anotarse, cada dispositivo genera un secreto y el servidor guarda solo su hash. Para subir puntajes con ese usuario hay que tener el mismo secreto.
+  - **Límites conocidos:**
+    - No se verifica que la cuenta de IG sea de quien la anota; eso requiere login con Instagram/Meta. Gana el primero que anota el usuario.
+    - Si alguien borra los datos del navegador, pierde el usuario. Se puede liberar a mano desde la tabla de Supabase.
+  - **Antitrampa básico:** el servidor rechaza puntajes que no son creíbles para los metros recorridos (más de 3 puntos por metro). No es infalible: un juego 100 % en el navegador no puede evitar todas las trampas. Si se van a dar premios, conviene revisar el top a mano.

@@ -14,6 +14,7 @@ import { Audio, Sfx } from '../audio/Audio';
 import { Missions } from './Missions';
 import { UI } from '../ui/UI';
 import * as Save from '../storage/Save';
+import * as Ranking from '../net/Ranking';
 
 type State = 'menu' | 'playing' | 'paused' | 'caught' | 'gameover';
 
@@ -109,6 +110,13 @@ export class Game {
       onClick: () => {
         this.audio.unlock();
         this.sfx('click');
+      },
+      onOpenRanking: () => this.openRanking(),
+      onRankingJoin: (raw) => this.joinRanking(raw),
+      onRankingChange: () => {
+        this.save.ig = '';
+        Save.save(this.save);
+        this.ui.setRankingUser('');
       },
     });
     this.audio.setMuted(this.save.muted);
@@ -225,8 +233,69 @@ export class Game {
   }
 
   private backToMenu(): void {
+    // Al ranking se puede llegar desde el game over: se vuelve ahí
+    if (this.state === 'gameover') {
+      this.ui.show('gameover');
+      return;
+    }
     this.ui.setMenuStats(this.save.bestScore, this.save.coinsTotal);
     this.ui.show('menu');
+  }
+
+  // ---------- Ranking ----------
+
+  private openRanking(): void {
+    this.ui.setRankingUser(this.save.ig);
+    this.ui.renderRanking([], '');
+    this.ui.show('ranking');
+    void this.loadRanking();
+  }
+
+  private async loadRanking(): Promise<void> {
+    this.ui.setRankingStatus(config.texts.rankingLoading);
+    await this.sendBest();
+    const list = await Ranking.top(this.save.ig);
+    if (!list) {
+      this.ui.setRankingStatus(config.texts.rankingError);
+      return;
+    }
+    const T = config.texts;
+    this.ui.setRankingStatus(!list.length ? T.rankingEmpty : Ranking.isOnline() ? '' : T.rankingLocal);
+    this.ui.renderRanking(list, this.save.ig);
+  }
+
+  private async joinRanking(raw: string): Promise<void> {
+    const T = config.texts;
+    const handle = Ranking.normalizeHandle(raw);
+    if (!handle) {
+      this.ui.setRankingUser('', T.rankingInvalid);
+      return;
+    }
+    if (!this.save.rankToken) this.save.rankToken = Ranking.newToken();
+    this.ui.setRankingUser('', T.rankingLoading);
+    const r = await Ranking.claim(handle, this.save.rankToken);
+    if (r !== 'ok') {
+      this.ui.setRankingUser('', r === 'taken' ? T.rankingTaken : r === 'invalid' ? T.rankingInvalid : T.rankingError);
+      return;
+    }
+    this.save.ig = handle;
+    this.save.rankSent = 0;
+    Save.save(this.save);
+    this.ui.setRankingUser(handle);
+    this.ui.setGameOverRank('', false);
+    await this.loadRanking();
+  }
+
+  /** Sube el mejor puntaje si todavía no está en el ranking. Devuelve el puesto (o null). */
+  private async sendBest(): Promise<number | null> {
+    const s = this.save;
+    if (!s.ig || s.bestScore <= 0) return null;
+    const pos = await Ranking.submit(s.ig, s.rankToken, s.bestScore, s.rankMeters || s.best);
+    if (pos !== null && s.rankSent < s.bestScore) {
+      s.rankSent = s.bestScore;
+      Save.save(s);
+    }
+    return pos;
   }
 
   private toggleMute(): void {
@@ -297,7 +366,10 @@ export class Game {
     const meters = this.player.s;
     const score = Math.floor(this.score);
     const isNewBest = score > this.save.bestScore;
-    if (isNewBest) this.save.bestScore = score;
+    if (isNewBest) {
+      this.save.bestScore = score;
+      this.save.rankMeters = Math.floor(meters);
+    }
     this.save.best = Math.max(this.save.best, meters);
     this.save.coinsTotal += this.runCoins;
     this.track('runMeters', meters);
@@ -317,6 +389,16 @@ export class Game {
     this.state = 'gameover';
     this.ui.setBubble(null);
     this.ui.showGameOver({ ...r, bestScore: this.save.bestScore });
+    // Ranking: si está anotado se sube el mejor puntaje y se muestra el puesto; si no, se invita a anotarse
+    const T = config.texts;
+    if (!this.save.ig) {
+      this.ui.setGameOverRank('', true);
+      return;
+    }
+    this.ui.setGameOverRank(T.rankingSending, false);
+    void this.sendBest().then((pos) => {
+      if (this.state === 'gameover') this.ui.setGameOverRank(pos ? T.rankingPos.replace('{n}', String(pos)) : '', false);
+    });
   }
 
   // ---------- Loop ----------

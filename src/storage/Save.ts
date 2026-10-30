@@ -17,6 +17,10 @@ export interface SaveData {
   skin: string; // skin elegida
   ageOk: boolean; // respondió que es mayor de 18
   missions: MissionsSave;
+  ig: string; // usuario de Instagram con el que se anotó en el ranking ('' = no se anotó)
+  rankToken: string; // secreto de este dispositivo: solo él puede subir puntajes con ese usuario
+  rankSent: number; // mejor puntaje ya subido al ranking
+  rankMeters: number; // metros de la partida del mejor puntaje
 }
 
 const DEFAULTS: SaveData = {
@@ -28,6 +32,10 @@ const DEFAULTS: SaveData = {
   skin: '',
   ageOk: false,
   missions: { day: '', progress: {}, done: [] },
+  ig: '',
+  rankToken: '',
+  rankSent: 0,
+  rankMeters: 0,
 };
 
 export function load(): SaveData {

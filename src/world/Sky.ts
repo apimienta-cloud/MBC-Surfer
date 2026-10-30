@@ -6,14 +6,38 @@ import type { ZoneSystem } from './zones';
 const Z = config.zones;
 const CL = config.clock;
 
-/** Minutos del reloj del HUD según la distancia: domingo 18:00 → 23:59 y ahí se queda. */
+/** Minuto en que llega el lunes, contando desde el primer día a las 00:00. */
+const MONDAY = CL.days.length * 24 * 60;
+
+/**
+ * Minutos del reloj (desde el jueves 00:00) según la distancia. Lo que falta para el lunes se reduce
+ * a la mitad cada `halfLifeMeters`: el reloj se va frenando y nunca llega.
+ */
 export function clockMinutes(distance: number): number {
-  return Math.min(CL.endMinutes, CL.startMinutes + Math.floor(distance / CL.metersPerMinute));
+  return MONDAY - (MONDAY - CL.startMinutes) * Math.pow(2, -distance / CL.halfLifeMeters);
 }
+
+const pad = (n: number): string => String(n).padStart(2, '0');
 
 export function clockText(distance: number): string {
   const m = clockMinutes(distance);
-  return `${CL.dayName} ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  // Nunca se muestra el lunes, aunque el redondeo lo pida
+  const sec = Math.min(Math.floor(m * 60), MONDAY * 60 - 1);
+  const day = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const min = Math.floor((sec % 3600) / 60);
+  const secs = MONDAY - m < CL.secondsUnderMinutes ? `:${pad(sec % 60)}` : '';
+  return `${CL.days[day]} ${pad(h)}:${pad(min)}${secs}`;
+}
+
+/** 1 de día, 0 de noche, con amanecer y atardecer suaves. */
+function daylight(minutes: number): number {
+  const h = (minutes / 60) % 24;
+  const ramp = (a: number, b: number): number => {
+    const x = Math.min(1, Math.max(0, (h - a) / (b - a)));
+    return x * x * (3 - 2 * x);
+  };
+  return ramp(CL.dawn[0], CL.dawn[1]) * (1 - ramp(CL.dusk[0], CL.dusk[1]));
 }
 
 interface HorizonItem {
@@ -46,7 +70,8 @@ export class Sky {
   private nightTop = new THREE.Color(Z.night.top);
   private nightHor = new THREE.Color(Z.night.horizon);
   private warm = new THREE.Color('#fff1d6');
-  /** 0 = tarde, hasta maxDarkness a las 23:59. */
+  private twilight = new THREE.Color(Z.night.twilight);
+  /** 0 = de día, maxDarkness = de noche. */
   darkness = 0;
 
   constructor(private zones: ZoneSystem) {
@@ -100,9 +125,10 @@ export class Sky {
     this.top.set(sa.top).lerp(this.tmp.set(sb.top), t);
     this.hor.set(sa.horizon).lerp(this.tmp.set(sb.horizon), t);
 
-    // Va cayendo la noche con el reloj (nunca del todo)
-    const p = (clockMinutes(playerS) - CL.startMinutes) / (CL.endMinutes - CL.startMinutes);
-    this.darkness = p * p * (3 - 2 * p) * Z.night.maxDarkness;
+    // Días y noches según el reloj; al amanecer y al atardecer el horizonte se pone naranja
+    const day = daylight(clockMinutes(playerS));
+    this.darkness = (1 - day) * Z.night.maxDarkness;
+    this.hor.lerp(this.twilight, 4 * day * (1 - day) * 0.55);
     this.top.lerp(this.nightTop, this.darkness);
     this.hor.lerp(this.nightHor, this.darkness);
 

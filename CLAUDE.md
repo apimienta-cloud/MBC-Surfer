@@ -103,7 +103,7 @@ Los landmarks van **a los costados de la pista** (nunca en los carriles), en low
 Ambiente:
 - Cielo con degradé; en la Rambla, atardecer naranja-violeta (los atardeceres de la rambla son un clásico).
 - Niebla para ocultar el spawn de chunks.
-- Opcional (nice-to-have): reloj en el HUD que arranca "Domingo 18:00" y avanza con la distancia; el cielo se va oscureciendo. Al llegar a "Domingo 23:59" se mantiene ahí (nunca llega el lunes mientras corras).
+- Reloj en el HUD que arranca el **jueves de noche** y avanza con la distancia pasando por días y noches (el cielo acompaña). Cuanto más cerca del lunes, más lento corre: el lunes nunca llega.
 
 ---
 

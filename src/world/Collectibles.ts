@@ -20,6 +20,7 @@ export class Collectibles {
     const geo = new THREE.CylinderGeometry(C.radius, C.radius, C.thickness, 20);
     // Las tapas miran hacia la cámara (eje del disco en z)
     geo.rotateX(Math.PI / 2);
+    uprightCaps(geo);
     const tex = makeFichaTexture();
     // Algo de emisivo para que el logo se lea aunque la ficha quede de perfil a la luz
     const face = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35, roughness: 0.35 });
@@ -105,6 +106,23 @@ export class Collectibles {
     }
     this.mesh.instanceMatrix.needsUpdate = true;
   }
+}
+
+/**
+ * Las tapas del cilindro traen la textura girada 90°: se remapean las UV para que "MBC" quede derecho,
+ * y la de atrás espejada para que también se lea bien cuando la ficha muestra el dorso al girar.
+ */
+function uprightCaps(geo: THREE.BufferGeometry): void {
+  const pos = geo.getAttribute('position');
+  const nor = geo.getAttribute('normal');
+  const uv = geo.getAttribute('uv');
+  for (let i = 0; i < pos.count; i++) {
+    const nz = nor.getZ(i);
+    if (Math.abs(nz) < 0.5) continue; // borde
+    const u = pos.getX(i) / C.radius;
+    uv.setXY(i, 0.5 + 0.5 * (nz > 0 ? u : -u), 0.5 + 0.5 * (pos.getY(i) / C.radius));
+  }
+  uv.needsUpdate = true;
 }
 
 /**

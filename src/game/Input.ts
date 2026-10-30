@@ -57,6 +57,8 @@ export class Input {
   private onKey = (e: KeyboardEvent): void => {
     const a = KEYMAP[e.code];
     if (!a) return;
+    // Escribiendo en un campo (usuario del ranking): las teclas no son del juego
+    if ((e.target as HTMLElement | null)?.closest?.('input, textarea')) return;
     if (e.repeat && a !== 'pause') return;
     e.preventDefault();
     this.push(a);
