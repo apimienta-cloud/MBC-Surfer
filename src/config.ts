@@ -1,7 +1,7 @@
 // Todo lo tuneable del juego vive acá: números, textos, colores y datos de marca.
 // Unidades: metros, segundos, metros/segundo.
 
-export type ObstacleKind = 'low' | 'high' | 'block' | 'bondi';
+export type ObstacleKind = 'low' | 'high' | 'block' | 'bondi' | 'taxi';
 export type SkinShape = 'porron' | 'lata' | 'chopp' | 'litro' | 'pinta' | 'growler';
 export type PowerUpType = 'feriado' | 'happyHour' | 'choppDoble' | 'tapitaTurbo';
 export type MissionStat = 'coins' | 'rolls' | 'jumps' | 'powerups' | 'roofs' | 'runMeters' | 'centenario';
@@ -19,11 +19,22 @@ export type ObstacleVariant =
   | 'vallaElevada' | 'cartel' | 'gaviotas'
   | 'puesto' | 'chorizos' | 'vallaObra'
   | 'barriles' | 'mesaPicnic' | 'cartelColgante' | 'barraMBC'
-  | 'bondi';
+  | 'bondi' | 'taxi';
+
+export interface BondiLine {
+  number: string;
+  dest: string;
+  body: string;
+  skirt: string;
+  skirtHeight: number;
+  line: string;
+  roof: string[];
+  accent: string[];
+}
 
 interface ZoneObstacles {
   weights?: Partial<Record<ObstacleKind, number>>;
-  variants: Record<Exclude<ObstacleKind, 'bondi'>, ObstacleVariant[]>;
+  variants: Record<Exclude<ObstacleKind, 'bondi' | 'taxi'>, ObstacleVariant[]>;
 }
 export interface SkinDef {
   id: string;
@@ -167,6 +178,9 @@ export const config = {
     foamOnJump: 6,
     foamOnStumble: 16,
     sparklesOnCoin: 5,
+    paintPool: 160,
+    // Pelusas de los plátanos flotando en el Parque Rodó
+    fluff: { pool: 320, perSecond: 80, color: '#F2DA6B', size: [0.035, 0.07] as [number, number], life: [3.5, 6] as [number, number] },
   },
 
   world: {
@@ -189,7 +203,7 @@ export const config = {
     fillChanceStart: 0.35,
     fillChanceMax: 0.75,
     // Pesos relativos de cada tipo
-    weights: { low: 3, high: 2, block: 2, bondi: 2 } as Record<ObstacleKind, number>,
+    weights: { low: 3, high: 2, block: 1.2, bondi: 2, taxi: 1 } as Record<ObstacleKind, number>,
     low: { width: 1.9, height: 0.95, depth: 0.9 },
     high: { width: 2.4, bottom: 1.2, height: 0.9, depth: 0.5 },
     block: { width: 2.3, height: 2.6, depth: 1.6 },
@@ -203,6 +217,8 @@ export const config = {
       movingSpeed: 6,
       activateDistance: 70, // empieza a moverse cuando la birra está a esta distancia
     },
+    // Taxi parado en el carril: hay que esquivarlo o saltar al techo
+    taxi: { width: 1.8, height: 1.45, depth: 4.4 },
     // Margen de "roce": si el solapamiento lateral es menor, es tropiezo y no choque
     grazeOverlap: 0.35,
     lowGrazeHeight: 0.3,
@@ -250,13 +266,16 @@ export const config = {
 
   colors: {
     laneLine: '#E8E4DA',
-    // Colores genéricos de ómnibus (sin empresas reales): carrocería y franja
-    bondiLiveries: [
-      { body: '#ECE4C8', stripe: '#2E7D4F' },
-      { body: '#F4F4F4', stripe: '#D33F3F' },
-      { body: '#F2C230', stripe: '#3A3A3A' },
-      { body: '#E6EEF5', stripe: '#2F6DB5' },
-    ],
+    // Líneas de ómnibus de Montevideo: número y destino del cartel, carrocería, pollera (parte de abajo),
+    // filete, franjas del techo y detalle del frente (sin logos de empresas)
+    bondiLines: [
+      { number: '526', dest: 'MALVIN', body: '#7DB83A', skirt: '#7DB83A', skirtHeight: 0.25, line: '#3A3A3A', roof: [], accent: ['#D33A3A', '#FFFFFF', '#6A3FA0'] },
+      { number: '104', dest: 'PZA INDEPENDENCIA', body: '#F1F1EC', skirt: '#1F2D5C', skirtHeight: 0.75, line: '#C8322A', roof: ['#C8322A', '#2F4FA8'], accent: [] },
+      { number: '191', dest: 'INSTRUCCIONES', body: '#F1F1EC', skirt: '#1F2D5C', skirtHeight: 0.75, line: '#C8322A', roof: ['#C8322A', '#2F4FA8'], accent: [] },
+      { number: '128', dest: 'POCITOS', body: '#F1F1EC', skirt: '#1F2D5C', skirtHeight: 0.75, line: '#C8322A', roof: ['#C8322A', '#2F4FA8'], accent: [] },
+    ] as BondiLine[],
+    bondiSign: { led: '#FF9A1F', bg: '#141414' }, // cartel de recorrido de leds naranja
+    taxi: { body: '#F4F4F2', band: '#F2B51D', check: '#1E1E1E' },
   },
 
   // Montevideo por zonas: cada ~800 m cambia, con un chunk de transición entre medio
@@ -297,10 +316,11 @@ export const config = {
         variants: { low: ['conitos', 'mateTermo'], high: ['gaviotas', 'gaviotas', 'cartel'], block: ['chorizos', 'vallaObra'] },
       },
       pocitos: {
+        weights: { taxi: 1.5 },
         variants: { low: ['mateTermo', 'cajon', 'conitos'], high: ['gaviotas', 'vallaElevada'], block: ['chorizos', 'vallaObra'] },
       },
       centro: {
-        weights: { bondi: 3.5 }, // mucho tránsito
+        weights: { bondi: 3.5, taxi: 2 }, // mucho tránsito
         variants: { low: ['contenedor', 'conitos', 'cajon'], high: ['cartel', 'vallaElevada'], block: ['vallaObra', 'chorizos'] },
       },
       tresCruces: {
@@ -350,6 +370,37 @@ export const config = {
     ] as MissionDef[],
   },
 
+  // Cinemática del principio: la birra pinta el grafiti de MBC en el muro que cierra la calle detrás de la largada
+  intro: {
+    enabled: true,
+    shakeTime: 1.2, // agita el aerosol
+    paintTime: 7, // pinta todo el grafiti
+    revealTime: 2.2, // la cámara se aleja para mostrarlo entero
+    outroTime: 1.6, // se da vuelta, saluda y queda en la posición del menú
+    wall: { z: 4.2, width: 16, height: 4.4, color: '#CDBFA8' }, // z: cara del muro (detrás de la largada)
+    graffiti: {
+      file: 'assets/brand/grafiti-pinta-vernos.png', // logo oficial + claim con la fuente Eatbreak (2048x768)
+      width: 9.6,
+      bottom: 0.35,
+      // Partes que pinta en orden (u0, v0, u1, v1 en fracciones de la imagen; v desde arriba): logo, PINTA, VERNOS
+      regions: [
+        [0.0137, 0.1979, 0.4551, 0.7747],
+        [0.5386, 0.0234, 0.9253, 0.4635],
+        [0.4756, 0.4635, 0.9883, 0.9375],
+      ] as [number, number, number, number][],
+      colors: ['#E9A93F', '#FFF3D6', '#FFF3D6'], // color del aerosol en cada parte
+    },
+    brushRadius: 0.32, // m
+    standDistance: 1.3, // de la birra al muro
+    reach: 2.4, // por arriba de esta altura pinta saltando
+  },
+
+  // Cinemática final: cámara a la birra y resultados que aparecen de a uno
+  results: {
+    countTime: 1.1, // el puntaje sube contando
+    itemDelay: 0.22, // entre logro y logro
+  },
+
   audio: {
     sfxVolume: 0.5,
     musicVolume: 0.22,
@@ -391,6 +442,18 @@ export const config = {
     restart: 'Reiniciar',
     menu: 'Menú',
     gameOver: 'Te agarró el lunes',
+    introSkip: 'Tocá para saltear',
+    introSkipDesktop: 'Tocá o apretá una tecla para saltear',
+    achievements: 'Logros',
+    achClock: 'Aguantaste hasta el {t}',
+    achZone: 'Llegaste a {z}',
+    // Singular y plural
+    achJumps: ['{n} salto', '{n} saltos'] as [string, string],
+    achRolls: ['{n} rodada', '{n} rodadas'] as [string, string],
+    achRoofs: ['{n} techo de bondi', '{n} techos de bondi'] as [string, string],
+    achPowerups: ['{n} power-up', '{n} power-ups'] as [string, string],
+    achMission: 'Misión: {m}',
+    tapToSkip: 'Tocá para ver todo',
     rematch: '¿Revancha?',
     best: 'Récord',
     newBest: '¡Nuevo récord!',

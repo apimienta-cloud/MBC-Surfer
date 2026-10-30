@@ -15,13 +15,15 @@ import { Missions } from './Missions';
 import { UI } from '../ui/UI';
 import * as Save from '../storage/Save';
 import * as Ranking from '../net/Ranking';
+import { Intro } from '../cinematics/Intro';
+import type { Achievement } from '../ui/UI';
 
-type State = 'menu' | 'playing' | 'paused' | 'caught' | 'gameover';
+type State = 'intro' | 'menu' | 'playing' | 'paused' | 'caught' | 'gameover';
 
 const CAM = config.camera;
 const SP = config.speed;
 
-/** Loop principal y máquina de estados (menu, playing, paused, caught, gameover). */
+/** Loop principal y máquina de estados (intro, menu, playing, paused, caught, gameover). */
 export class Game {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -44,6 +46,11 @@ export class Game {
   private missions: Missions;
   private score = 0;
   private passedCentenario = false;
+  private intro = new Intro(this.particles);
+  /** Lo que hizo en la partida, para los logros de la cinemática final. */
+  private runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, missions: [] as string[] };
+  /** Tiempo de la cinemática final (cámara girando alrededor de la birra). */
+  private outroT = 0;
 
   private state: State = 'menu';
   private speed: number = SP.start;
@@ -67,6 +74,8 @@ export class Game {
   private beatBest = false;
   private tmpV = new THREE.Vector3();
   private tmpTarget = new THREE.Vector3();
+  private menuPos = new THREE.Vector3();
+  private menuLook = new THREE.Vector3();
 
   constructor(container: HTMLElement, uiRoot: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -80,7 +89,7 @@ export class Game {
     this.scene.fog = this.fog;
     this.scene.add(this.sky.group, this.sky.hemi, this.sky.sun);
 
-    this.scene.add(this.chunks.group, this.obstacles.group, this.coins.mesh, this.powerups.group, this.player.root, this.chaser.root, this.particles.group);
+    this.scene.add(this.intro.group, this.chunks.group, this.obstacles.group, this.coins.mesh, this.powerups.group, this.player.root, this.chaser.root, this.particles.group);
     this.obstacles.powerSpawner = (lane, s) => this.powerups.spawn(this.powerups.randomType(), lane, s);
 
     // Skins renombradas en versiones anteriores: se conservan las compras
@@ -113,6 +122,7 @@ export class Game {
       },
       onOpenRanking: () => this.openRanking(),
       onRankingJoin: (raw) => this.joinRanking(raw),
+      onSkipIntro: () => this.skipIntro(),
       onRankingChange: () => {
         this.save.ig = '';
         Save.save(this.save);
@@ -130,9 +140,12 @@ export class Game {
     // Pausa automática al perder el foco
     document.addEventListener('visibilitychange', () => document.hidden && this.pause());
     window.addEventListener('blur', () => this.pause());
+    // La intro se saltea con cualquier tecla
+    window.addEventListener('keydown', () => this.state === 'intro' && this.skipIntro());
 
     this.resetRun();
-    this.toMenu();
+    if (config.intro.enabled) this.playIntro();
+    else this.toMenu();
     requestAnimationFrame(this.frame);
   }
 
@@ -152,6 +165,10 @@ export class Game {
     this.beatBest = false;
     this.camDip = 0;
     this.passedCentenario = false;
+    this.runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, missions: [] };
+    this.outroT = 0;
+    // La cinemática final esconde lo que tapa a la birra
+    this.obstacles.group.visible = this.coins.mesh.visible = this.powerups.group.visible = true;
     this.shake = 0;
     this.pendingResult = null;
     this.zoneId = null;
@@ -189,8 +206,28 @@ export class Game {
     this.audio.startMusic();
   }
 
+  /** Cinemática del principio: la birra pinta el grafiti en el muro de atrás de la largada. */
+  private playIntro(): void {
+    this.state = 'intro';
+    this.input.enabled = false;
+    this.audio.unlock();
+    this.ui.show('intro');
+    this.intro.start(this.player);
+  }
+
+  private skipIntro(): void {
+    if (this.state !== 'intro') return;
+    this.intro.skip();
+    this.endIntro();
+  }
+
+  private endIntro(): void {
+    this.player.reset();
+    this.toMenu();
+  }
+
   private toMenu(): void {
-    if (this.state !== 'menu') this.resetRun();
+    if (this.state !== 'menu' && this.state !== 'intro') this.resetRun();
     this.state = 'menu';
     this.input.enabled = false;
     this.audio.stopMusic();
@@ -331,7 +368,10 @@ export class Game {
 
   /** Suma a las misiones y avisa las que se cumplieron. */
   private track(stat: Parameters<Missions['track']>[0], v: number): void {
+    const rs = this.runStats;
+    if (stat === 'jumps' || stat === 'rolls' || stat === 'roofs' || stat === 'powerups') rs[stat] += v;
     for (const text of this.missions.track(stat, v)) {
+      rs.missions.push(text);
       this.ui.notice(config.texts.missionDone.replace('{n}', String(config.missions.reward)) + ' · ' + text, 3200);
       this.sfx('mission');
     }
@@ -388,7 +428,16 @@ export class Game {
     if (!r) return;
     this.state = 'gameover';
     this.ui.setBubble(null);
-    this.ui.showGameOver({ ...r, bestScore: this.save.bestScore });
+    // Cinemática final: la birra sola en la calle, la cámara se le acerca de frente
+    this.outroT = 0;
+    this.obstacles.group.visible = this.coins.mesh.visible = this.powerups.group.visible = false;
+    this.chaser.root.visible = false;
+    const p = this.player;
+    p.y = p.groundY = p.vy = 0;
+    p.grounded = true;
+    p.rollTimer = 0;
+    p.pose = r.isNewBest ? 'cheer' : 'wave';
+    this.ui.showGameOver({ ...r, bestScore: this.save.bestScore, achievements: this.achievements(r.meters) }, (s) => this.sfx(s));
     // Ranking: si está anotado se sube el mejor puntaje y se muestra el puesto; si no, se invita a anotarse
     const T = config.texts;
     if (!this.save.ig) {
@@ -399,6 +448,26 @@ export class Game {
     void this.sendBest().then((pos) => {
       if (this.state === 'gameover') this.ui.setGameOverRank(pos ? T.rankingPos.replace('{n}', String(pos)) : '', false);
     });
+  }
+
+  /** Logros de la partida para la pantalla final (solo los que pasaron). */
+  private achievements(meters: number): Achievement[] {
+    const T = config.texts;
+    const rs = this.runStats;
+    const zone = this.zones.zoneAt(meters).id;
+    const list: Achievement[] = [
+      { icon: '🕒', text: T.achClock.replace('{t}', clockText(meters)) },
+      { icon: '📍', text: T.achZone.replace('{z}', config.zones.names[zone]) },
+    ];
+    const n = (icon: string, tpl: [string, string], v: number): void => {
+      if (v > 0) list.push({ icon, text: tpl[v === 1 ? 0 : 1].replace('{n}', v.toLocaleString('es-UY')) });
+    };
+    n('⬆️', T.achJumps, rs.jumps);
+    n('🌀', T.achRolls, rs.rolls);
+    n('🚌', T.achRoofs, rs.roofs);
+    n('⚡', T.achPowerups, rs.powerups);
+    for (const m of rs.missions) list.push({ icon: '✅', text: T.achMission.replace('{m}', m), gold: true });
+    return list;
   }
 
   // ---------- Loop ----------
@@ -450,6 +519,7 @@ export class Game {
     }
 
     if (this.state === 'caught' && this.chaser.catchDone) this.finishGameOver();
+    if (this.state === 'intro' && !this.intro.step(dt, this.player, (sfx) => this.sfx(sfx))) this.endIntro();
 
     this.render(dt);
   };
@@ -548,18 +618,23 @@ export class Game {
       this.coins.render(dt);
       this.particles.update(dt);
       // En el menú la birra corre en el lugar
-      const animSpeed = st === 'menu' ? SP.start : st === 'playing' ? this.speed : 0;
-      p.render(dt, animSpeed, this.chaser.isNear && st === 'playing', st === 'caught' || st === 'gameover');
-      p.setSquashed(this.chaser.squashAmount);
+      const animSpeed = st === 'menu' ? SP.start : st === 'playing' ? this.speed : st === 'intro' ? this.intro.walkSpeed : 0;
+      p.render(dt, animSpeed, this.chaser.isNear && st === 'playing', st === 'caught');
+      p.setSquashed(st === 'gameover' ? 0 : this.chaser.squashAmount);
       p.setShield(st === 'playing' || st === 'caught' ? this.powerups.timers.feriado : 0, this.time);
-      if (st !== 'menu') this.chaser.render(dt, p.x, p.s, p.groundY, this.speed, this.particles);
+      if (st === 'playing' || st === 'caught') this.chaser.render(dt, p.x, p.s, p.groundY, this.speed, this.particles);
+      if (st === 'gameover') {
+        this.outroT += dt;
+        // Récord: festeja tirando brillitos
+        if (p.pose === 'cheer' && Math.random() < dt * 4) this.particles.sparkle(p.x + (Math.random() - 0.5), 1.8, -p.s);
+      }
     }
     this.obstacles.render(this.time);
     this.powerups.render(this.time);
-    if (st === 'menu') this.chaser.root.visible = false;
+    if (st === 'menu' || st === 'intro' || st === 'gameover') this.chaser.root.visible = false;
 
     // Cámara: de frente a la birra en el menú; detrás y arriba al jugar
-    this.camBlend += ((st === 'menu' ? 0 : 1) - this.camBlend) * Math.min(1, dt * 3.5);
+    this.camBlend += ((st === 'menu' || st === 'intro' ? 0 : 1) - this.camBlend) * Math.min(1, dt * 3.5);
     const b = this.camBlend * this.camBlend * (3 - 2 * this.camBlend);
     const k = (this.speed - SP.start) / (SP.max - SP.start);
     let fov = CAM.fovBase + (CAM.fovMax - CAM.fovBase) * k;
@@ -576,17 +651,16 @@ export class Game {
     this.camDip = Math.max(0, this.camDip - dt * 1.2);
     const game = this.tmpV.set(gx + (Math.random() - 0.5) * sh, CAM.height + p.y * 0.5 - this.camDip + (Math.random() - 0.5) * sh, -p.s + CAM.distance);
     const look = this.tmpTarget.set(gx, CAM.lookHeight + p.y * 0.6, -p.s - CAM.lookAhead);
-    const orbit = Math.sin(this.time * 0.3) * 0.6;
-    this.camera.position.set(
-      THREE.MathUtils.lerp(p.x + orbit, game.x, b),
-      THREE.MathUtils.lerp(1.6, game.y, b),
-      THREE.MathUtils.lerp(-p.s - 4.2, game.z, b),
-    );
-    this.camera.lookAt(
-      THREE.MathUtils.lerp(p.x, look.x, b),
-      THREE.MathUtils.lerp(1.0, look.y, b),
-      THREE.MathUtils.lerp(-p.s, look.z, b),
-    );
+    if (st === 'intro') {
+      this.menuCamera(0, 0, this.menuPos, this.menuLook);
+      this.intro.camera(this.camera, dt, p, this.menuPos, this.menuLook);
+    } else if (st === 'gameover') {
+      this.resultsCamera();
+    } else {
+      this.menuCamera(p.x, p.s, this.menuPos, this.menuLook);
+      this.camera.position.lerpVectors(this.menuPos, game, b);
+      this.camera.lookAt(look.lerpVectors(this.menuLook, look, b));
+    }
 
     // Cielo, niebla y noche según zona y hora; los faroles se prenden
     this.sky.update(this.camera, p.s, this.fog);
@@ -603,6 +677,39 @@ export class Game {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Cámara del menú: de frente a la birra, hamacándose un poco. */
+  private menuCamera(x: number, s: number, pos: THREE.Vector3, look: THREE.Vector3): void {
+    pos.set(x + Math.sin(this.time * 0.3) * 0.6, 1.6, -s - 4.2);
+    look.set(x, 1.0, -s);
+  }
+
+  /**
+   * Cinemática final: la cámara se acerca de frente y gira despacio alrededor de la birra.
+   * La birra queda a un costado (horizontal) o arriba (vertical) para dejarle lugar a los resultados.
+   */
+  private resultsCamera(): void {
+    const p = this.player;
+    const t = this.outroT;
+    const e = 1 - Math.pow(1 - Math.min(1, t / 1.6), 3);
+    const half = (this.camera.fov * Math.PI) / 360;
+    const wide = this.camera.aspect > 1;
+    // Distancia para que la birra (~1,7 m) ocupe 45 % del alto en horizontal o 32 % en vertical
+    const final = 1.7 / (2 * Math.tan(half * (wide ? 0.45 : 0.32)));
+    const dist = THREE.MathUtils.lerp(final * 1.8, final, e);
+    const ang = THREE.MathUtils.lerp(-0.7, -0.25, e) + Math.sin(t * 0.4) * 0.12;
+    const target = this.tmpTarget.set(p.x, 0.9, -p.s);
+    this.camera.position.set(target.x + Math.sin(ang) * dist, THREE.MathUtils.lerp(2.4, 1.25, e), target.z - Math.cos(ang) * dist);
+    // Corre el punto de mira: la birra queda en el tercio izquierdo (horizontal) o arriba (vertical)
+    if (wide) {
+      const right = this.tmpV.subVectors(target, this.camera.position).normalize().cross(THREE.Object3D.DEFAULT_UP).normalize();
+      const halfH = Math.atan(Math.tan(half) * this.camera.aspect);
+      target.addScaledVector(right, dist * Math.tan(halfH * 0.4) * e);
+    } else {
+      target.y -= dist * Math.tan(half * 0.56) * e;
+    }
+    this.camera.lookAt(target);
   }
 
   /** Reloj del domingo y cartel al entrar a una zona nueva. */

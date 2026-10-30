@@ -28,6 +28,8 @@ const PROFILES: Record<SkinShape, Profile> = {
 };
 
 export type Expression = 'run' | 'jump' | 'panic';
+/** Poses de las cinemáticas: agitar y usar el aerosol, festejar, saludar. */
+export type Pose = 'shake' | 'paint' | 'cheer' | 'wave' | null;
 
 export interface BirraAnimState {
   dt: number;
@@ -39,6 +41,9 @@ export interface BirraAnimState {
   laneTilt: number; // -1..1 según hacia dónde cambia de carril
   chaserNear: boolean;
   caught: boolean;
+  pose?: Pose;
+  /** Ángulo del brazo derecho al pintar (0 = colgando, π/2 = hacia adelante). */
+  aim?: number;
 }
 
 /**
@@ -57,6 +62,7 @@ export class Birra {
   private brows: THREE.Mesh[] = [];
   private pupils: THREE.Mesh[] = [];
   private smile!: THREE.Mesh;
+  private can!: THREE.Group;
   private mouthOpen!: THREE.Mesh;
   private profile: Profile;
 
@@ -227,6 +233,19 @@ export class Birra {
       arm.rotation.z = sx * 0.35;
       this.squash.add(arm);
       this.arms.push(arm);
+      // Aerosol en la mano derecha (solo en la intro): el pico apunta a lo largo del brazo
+      if (sx > 0) {
+        this.can = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.2, 12), new THREE.MeshStandardMaterial({ color: '#C8322A', roughness: 0.4, metalness: 0.4 }));
+        body.position.y = -0.44;
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 0.05, 12), new THREE.MeshStandardMaterial({ color: '#D9D9D9', roughness: 0.3, metalness: 0.6 }));
+        top.position.y = -0.565;
+        const nozzle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.03), darkMat);
+        nozzle.position.y = -0.6;
+        this.can.add(body, top, nozzle);
+        this.can.visible = false;
+        arm.add(this.can);
+      }
 
       const leg = new THREE.Group();
       leg.position.set(sx * pr.bodyR * 0.45, legL, 0);
@@ -296,6 +315,39 @@ export class Birra {
     for (const p of this.pupils) p.scale.setScalar(e === 'panic' ? 0.6 : 1);
   }
 
+  /** Pico del aerosol en coordenadas de mundo (necesita las matrices actualizadas). */
+  sprayTip(out: THREE.Vector3): THREE.Vector3 {
+    return this.can.localToWorld(out.set(0, -0.63, 0));
+  }
+
+  /** Brazos de las poses de cinemática (van después de la animación de carrera). */
+  private applyPose(pose: Exclude<Pose, null>, aim: number): void {
+    const [left, right] = this.arms;
+    const t = this.time;
+    switch (pose) {
+      case 'shake':
+        // Agita el aerosol adelante de la panza
+        right.rotation.x = Math.PI * 0.45 + Math.sin(t * 26) * 0.35;
+        left.rotation.x = 0.2;
+        break;
+      case 'paint':
+        right.rotation.x = aim + Math.sin(t * 21) * 0.04;
+        right.rotation.z = 0.15;
+        left.rotation.x = 0.35;
+        left.rotation.z = -0.9; // mano en la cintura
+        break;
+      case 'cheer':
+        left.rotation.x = Math.PI * 0.9 + Math.sin(t * 9) * 0.25;
+        right.rotation.x = Math.PI * 0.9 - Math.sin(t * 9) * 0.25;
+        break;
+      case 'wave':
+        right.rotation.x = Math.PI * 0.08;
+        right.rotation.z = Math.PI * 0.8 + Math.sin(t * 9) * 0.35;
+        left.rotation.x = 0.1;
+        break;
+    }
+  }
+
   /** Eventos puntuales de la física. */
   onJump(): void {
     this.squashAmt = 0.22; // se achata al despegar
@@ -350,6 +402,10 @@ export class Birra {
       this.arms[0].rotation.x = Math.PI * 0.85 + Math.sin(this.time * 30) * 0.3;
       this.arms[1].rotation.x = Math.PI * 0.85 - Math.sin(this.time * 30) * 0.3;
     }
+    this.arms[0].rotation.z = -0.35;
+    this.arms[1].rotation.z = 0.35;
+    if (s.pose) this.applyPose(s.pose, s.aim ?? Math.PI / 2);
+    this.can.visible = s.pose === 'shake' || s.pose === 'paint';
     for (const l of [...this.legs, ...this.arms]) l.scale.setScalar(Math.max(0.001, tuck));
 
     // Squash & stretch: estirada en el aire según la velocidad vertical, aplastada al despegar/caer
@@ -379,7 +435,7 @@ export class Birra {
     this.squash.rotation.y += (turn - this.squash.rotation.y) * Math.min(1, dt * 14);
 
     // Expresión
-    this.setExpression(s.caught || this.wobble > 0 || this.glance > 0 ? 'panic' : !s.grounded ? 'jump' : 'run');
+    this.setExpression(s.caught || this.wobble > 0 || this.glance > 0 ? 'panic' : !s.grounded && !s.pose ? 'jump' : 'run');
 
     // Espuma: se bambolea y se queda atrás con el movimiento vertical
     this.foam.position.y = this.topY + 0.02 - THREE.MathUtils.clamp(s.vy * 0.006, -0.05, 0.05);

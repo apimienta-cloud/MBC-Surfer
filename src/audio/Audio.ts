@@ -2,7 +2,7 @@ import { config } from '../config';
 
 const A = config.audio;
 
-export type Sfx = 'jump' | 'roll' | 'coin' | 'powerup' | 'stumble' | 'crash' | 'caught' | 'click' | 'shield' | 'mission' | 'land';
+export type Sfx = 'jump' | 'roll' | 'coin' | 'powerup' | 'stumble' | 'crash' | 'caught' | 'click' | 'shield' | 'mission' | 'land' | 'spray' | 'rattle' | 'tick';
 
 /**
  * Sonido con Web Audio. Efectos sintetizados (sin archivos) y música:
@@ -115,6 +115,17 @@ export class Audio {
         break;
       case 'click':
         this.tone('triangle', 660, 880, t, 0.05, 0.15);
+        break;
+      case 'spray':
+        // Pssst del aerosol
+        this.whoosh(t, 0.26, 6500, 5200, 0.22);
+        break;
+      case 'rattle':
+        // Bolita dentro de la lata al agitar
+        [0, 0.09].forEach((d) => this.tone('square', 2400, 1800, t + d, 0.03, 0.08));
+        break;
+      case 'tick':
+        this.tone('triangle', 1320, 1320, t, 0.03, 0.08);
         break;
     }
   }

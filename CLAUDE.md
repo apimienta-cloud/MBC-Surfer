@@ -109,7 +109,7 @@ Ambiente:
 
 ## 7. Obstáculos (todos originales y locales)
 
-Cuatro tipos de comportamiento:
+Cinco tipos de comportamiento:
 
 | Tipo | Cómo se esquiva | Ejemplos |
 |---|---|---|
@@ -117,8 +117,9 @@ Cuatro tipos de comportamiento:
 | **Alto** | Rodar por abajo | Valla de obra elevada, cartel colgante, bandada de gaviotas volando bajo (en la Rambla) |
 | **Bloque** | Cambiar de carril | Puesto de feria, carrito de chorizos, vallas de obra completas |
 | **Bondi** | Cambiar de carril o subirse arriba por la rampa | Ómnibus estacionado o viniendo de frente (equivalente a los trenes). Tiene una rampa adelante para subirse al techo y correr por arriba |
+| **Taxi** | Cambiar de carril o saltar al techo | Taxi de Montevideo parado en el carril (blanco con franja amarilla y copete de TAXI) |
 
-- Ómnibus, comercios y carteles **sin logos ni nombres de empresas reales**: colores genéricos.
+- Ómnibus con líneas reales de Montevideo (526 MALVIN, 104 PZA INDEPENDENCIA, 191 INSTRUCCIONES, 128 POCITOS) con sus colores y cartel de recorrido, pero **sin logos ni nombres de empresas**. Taxis con la pintura de Montevideo, sin logos de radiotaxis. Comercios y carteles sin marcas reales.
 - Siempre tiene que existir al menos un camino posible (validar al generar cada fila de obstáculos).
 - La densidad y los patrones se vuelven más difíciles con la distancia.
 
@@ -155,10 +156,11 @@ Cuatro tipos de comportamiento:
 ## 10. Pantallas y UI
 
 1. **Age gate** (activable con `config.brand.ageGate`): "¿Sos mayor de 18?" Sí / No. Si dice que no, mensaje amable y no se muestra el juego.
-2. **Menú principal:** título "Escapale al Lunes", birra animada corriendo en el lugar, botón **Jugar**, récord, fichitas, Skins, mute.
+2. **Cinemática de entrada** (salteable): la birra pinta en una pared el grafiti con el logo de MBC y el claim **PINTA VERNOS**, que queda de fondo en el menú.
+   **Menú principal:** título "Escapale al Lunes", birra animada corriendo en el lugar, botón **Jugar**, récord, fichitas, Skins, mute.
 3. **HUD:** metros, fichitas, multiplicador, power-up activo con barra de duración, botón pausa. Grande y legible en celular.
 4. **Pausa:** Seguir / Reiniciar / Menú.
-5. **Game over:** "Te agarró el lunes", metros, fichitas de la partida, récord (con festejo si es nuevo), botones **Revancha** y **Compartir** (Web Share API con el texto "Le escapé al lunes X metros por Montevideo 🍺", con fallback a copiar al portapapeles).
+5. **Game over (cinemática final):** la cámara se acerca a la birra, que festeja o saluda, y la tarjeta cuenta el puntaje y muestra los logros de la partida. "Te agarró el lunes", metros, fichitas de la partida, récord (con festejo si es nuevo), botones **Revancha** y **Compartir** (Web Share API con el texto "Le escapé al lunes X metros por Montevideo 🍺", con fallback a copiar al portapapeles).
 6. **Leyenda legal** al pie del menú, configurable (`config.brand.legalText`, por defecto "Tomá con moderación. Prohibida su venta a menores de 18 años.").
 
 Fuentes: una display redondeada y divertida para títulos (Google Fonts, por ejemplo Baloo 2 o Fredoka) y una sans legible para el HUD.
@@ -257,6 +259,6 @@ Al final de cada fase: `npm run build` sin errores ni warnings de TypeScript, pr
 
 - **No** usar assets, nombres, personajes, música ni sonidos de Subway Surfers ni de ningún otro juego. Solo la mecánica de género (endless runner de 3 carriles).
 - **No** inventar ni dibujar logos de MBC: usar los archivos de `public/assets/brand/` o placeholders neutros.
-- Ómnibus, comercios y carteles sin marcas reales.
+- Ómnibus, taxis, comercios y carteles sin logos ni nombres de empresas reales (los números y destinos de las líneas sí).
 - Código en TypeScript estricto, comentarios breves en español.
 - Ante una duda de diseño, elegir lo más simple, anotarlo en `DECISIONES.md` y seguir.

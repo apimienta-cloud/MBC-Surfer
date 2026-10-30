@@ -17,6 +17,9 @@ const EDGE = ROAD_HALF + W.sidewalkWidth;
 const MAX_STRIPS = 3;
 const VARIANTS_PER_STYLE = 8;
 const SMOKE_PER_SECOND = 5;
+const FLUFF = config.particles.fluff;
+// Las pelusas aparecen en este tramo delante de la birra (m)
+const FLUFF_AHEAD: [number, number] = [2, 55];
 
 interface Slot {
   index: number;
@@ -27,6 +30,8 @@ interface Slot {
   decor: THREE.Group;
   smoke: THREE.Vector3[];
   smokeAcc: number;
+  fluff: boolean;
+  fluffAcc: number;
 }
 
 /**
@@ -102,7 +107,7 @@ export class ChunkManager {
       const decor = new THREE.Group();
       g.add(decor);
       this.group.add(g);
-      this.slots.push({ index: -999, group: g, road: roadMesh, sidewalks, strips, decor, smoke: [], smokeAcc: 0 });
+      this.slots.push({ index: -999, group: g, road: roadMesh, sidewalks, strips, decor, smoke: [], smokeAcc: 0, fluff: false, fluffAcc: 0 });
     }
   }
 
@@ -110,7 +115,7 @@ export class ChunkManager {
     for (const s of this.slots) s.index = -999;
   }
 
-  /** Asegura los chunks alrededor de la birra (reciclando) y emite humo de parrillas cercanas. */
+  /** Asegura los chunks alrededor de la birra (reciclando) y emite humo de parrillas cercanas y pelusas. */
   update(playerS: number, dt = 0): void {
     const cur = Math.floor(playerS / L);
     const lo = cur - W.chunksBehind;
@@ -130,6 +135,20 @@ export class ChunkManager {
         while (s.smokeAcc >= 1) {
           s.smokeAcc -= 1;
           for (const p of s.smoke) if (Math.abs(-p.z - playerS) < 160) this.particles.smoke(p.x, p.y, p.z);
+        }
+      }
+      for (const s of this.slots) {
+        if (!s.fluff) continue;
+        // Solo la parte del chunk que cae en el tramo de adelante
+        const a = Math.max(s.index * L, playerS + FLUFF_AHEAD[0]);
+        const b = Math.min((s.index + 1) * L, playerS + FLUFF_AHEAD[1]);
+        if (b <= a) continue;
+        s.fluffAcc += dt * FLUFF.perSecond * ((b - a) / (FLUFF_AHEAD[1] - FLUFF_AHEAD[0]));
+        while (s.fluffAcc >= 1) {
+          s.fluffAcc -= 1;
+          // Más cerca de la pista que de los costados
+          const x = (Math.random() - 0.5) * (Math.random() < 0.7 ? ROAD_W + 4 : 26);
+          this.particles.fluff(x, 0.3 + Math.random() * 4.2, -(a + Math.random() * (b - a)));
         }
       }
     }
@@ -174,6 +193,7 @@ export class ChunkManager {
     slot.group.position.z = -k * L;
     slot.decor.clear();
     slot.smoke.length = 0;
+    slot.fluff = false;
     const info = this.zones.chunkInfo(k);
     const zone = info.zone;
     slot.road.material = this.roadMats[zone.road];
@@ -328,6 +348,10 @@ class Builder implements ChunkCtx {
 
   banner(text: string, z: number, sign = false): void {
     this.cm._banner(this.slot, text, z, sign);
+  }
+
+  fluff(): void {
+    this.slot.fluff = true;
   }
 
   billboard(side: Side, z: number): void {

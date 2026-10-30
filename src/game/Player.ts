@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { config, laneX, SkinDef } from '../config';
 import { Box, makeBox } from './Collision';
-import { Birra } from '../models/Birra';
+import { Birra, Pose } from '../models/Birra';
 
 const P = config.player;
 
@@ -35,6 +35,10 @@ export class Player {
   /** Tiempo en que los choques no cuentan (después de que el Feriado absorbe uno). */
   invulnerable = 0;
   private onRoof = false;
+  /** Cinemáticas: pose de brazos, ángulo del brazo al pintar y hacia dónde mira (0 = adelante). */
+  pose: Pose = null;
+  aim = Math.PI / 2;
+  yaw = 0;
   /** Eventos del último paso, para partículas y sonido. Los consume el Game. */
   readonly events: PlayerEvent[] = [];
 
@@ -102,6 +106,8 @@ export class Player {
     this.rollTimer = this.jumpBuffer = this.stumbleCooldown = this.stumbleAnim = this.invulnerable = 0;
     this.rollOnLand = this.fastFall = this.onRoof = false;
     this.jumpBoost = 1;
+    this.pose = null;
+    this.yaw = 0;
     this.events.length = 0;
     this.setSquashed(0);
     this.updateBox();
@@ -220,6 +226,7 @@ export class Player {
   /** Sincroniza el modelo con el estado (una vez por frame). */
   render(dt: number, speed: number, chaserNear: boolean, caught: boolean): void {
     this.root.position.set(this.x, this.y, -this.s);
+    this.root.rotation.y = this.yaw;
     this.model.animate({
       dt,
       speed,
@@ -230,10 +237,18 @@ export class Player {
       laneTilt: THREE.MathUtils.clamp((laneX(this.lane) - this.x) / config.lanes.width, -1, 1),
       chaserNear,
       caught,
+      pose: this.pose,
+      aim: this.aim,
     });
     // La sombra se queda en el piso (techo de bondi incluido)
     this.shadow.position.y = this.groundY - this.y + 0.02;
     this.shadow.scale.setScalar(Math.max(0.4, 1 - (this.y - this.groundY) * 0.12));
+  }
+
+  /** Pico del aerosol en el mundo (intro). */
+  sprayTip(out: THREE.Vector3): THREE.Vector3 {
+    this.root.updateMatrixWorld(true);
+    return this.model.sprayTip(out);
   }
 
   /** Para la animación de captura: la birra queda aplastada abajo del Lunes. */

@@ -9,6 +9,7 @@ import { kitMaterial } from './landmarks/kit';
 
 const O = config.obstacles;
 const B = O.bondi;
+const T = O.taxi;
 const LANES = config.lanes.count;
 
 export interface Obstacle {
@@ -29,7 +30,7 @@ export interface Obstacle {
 /** Tipo de celda en una fila: null = carril libre. */
 type Cell = ObstacleKind | null;
 
-/** Intervalo en s donde un carril está ocupado por un bondi (cuerpo + rampa). */
+/** Intervalo en s donde un carril está ocupado por un bondi (cuerpo + rampa) o un taxi. */
 interface Busy {
   from: number;
   to: number;
@@ -95,7 +96,7 @@ export class Obstacles {
     let o = this.pool.get(key)?.pop();
     if (!o) {
       const mesh = new THREE.Mesh(this.geoFor(variant, livery), kitMaterial);
-      const extras = obstacleExtras(variant);
+      const extras = obstacleExtras(variant, livery);
       if (extras) mesh.add(extras);
       this.group.add(mesh);
       let rampMesh: THREE.Mesh | null = null;
@@ -122,7 +123,7 @@ export class Obstacles {
   place(kind: ObstacleKind, lane: number, s: number, opts: { ramp?: boolean; moving?: boolean } = {}): Obstacle {
     // La variante visual depende de la zona (contenedor en Ciudad Vieja, gaviotas en la Rambla...)
     const variant = this.zones.variantAt(kind, s, Math.random());
-    const livery = kind === 'bondi' ? Math.floor(Math.random() * config.colors.bondiLiveries.length) : 0;
+    const livery = kind === 'bondi' ? Math.floor(Math.random() * config.colors.bondiLines.length) : 0;
     const o = this.acquire(kind, variant, livery);
     o.lane = lane;
     o.ramp = !!opts.ramp;
@@ -139,6 +140,11 @@ export class Obstacles {
         break;
       case 'block':
         setBox(b, x, O.block.width, 0, O.block.height, s, O.block.depth);
+        break;
+      case 'taxi':
+        setBox(b, x, T.width, 0, T.height, s, T.depth);
+        // Parado mirando para cualquier lado
+        o.mesh.rotation.y = Math.random() < 0.5 ? 0 : Math.PI;
         break;
       case 'bondi': {
         // s es el frente del conjunto; si tiene rampa, el cuerpo arranca después
@@ -233,6 +239,8 @@ export class Obstacles {
       if (!c || blockedByBusy[l]) continue;
       if (c === 'bondi') this.placeBondi(l, s, speed);
       else this.place(c, l, s);
+      // El taxi es largo: ocupa el carril como un bondi corto (sin fichitas ni power-ups adentro)
+      if (c === 'taxi') this.busy[l] = { from: s - T.depth / 2, to: s + T.depth / 2, ramp: false };
     }
 
     // 5) Nuevo alcance = alcanzables que se pueden pasar en esta fila

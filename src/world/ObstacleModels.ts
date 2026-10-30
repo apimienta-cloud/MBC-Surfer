@@ -1,14 +1,19 @@
 import * as THREE from 'three';
 import { config, ObstacleVariant } from '../config';
-import { Kit } from './landmarks/kit';
+import { glowEmissive, Kit } from './landmarks/kit';
 import { cartelDisc } from './landmarks/LocalesMBC';
 
 const O = config.obstacles;
 const B = O.bondi;
+const T = O.taxi;
+const TAXI_W = 1.75;
+const LINES = config.colors.bondiLines;
+const SIGN = config.colors.bondiSign;
+const TC = config.colors.taxi;
 
 /**
  * Modelos de obstáculos (todos originales, sin marcas). Cada uno respeta la caja de colisión de su tipo:
- * centrado en x y z, apoyado en y = 0. Los ómnibus tienen el frente hacia +z.
+ * centrado en x y z, apoyado en y = 0. Los ómnibus y el taxi tienen el frente hacia +z.
  */
 export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.BufferGeometry {
   const k = new Kit();
@@ -177,21 +182,32 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
     }
     // ---------- Bondi ----------
     case 'bondi': {
-      const lv = config.colors.bondiLiveries[livery % config.colors.bondiLiveries.length];
+      const lv = LINES[livery % LINES.length];
       const L = B.length;
       const W = B.width;
       k.box(W, B.height - 0.35, L, lv.body, 0, 0.35);
-      k.box(W + 0.02, 0.45, L, lv.stripe, 0, 0.75);
-      // Ventanillas a los costados
-      for (const x of [-W / 2 - 0.01, W / 2 + 0.01]) k.box(0.04, 1.0, L - 2.4, '#2F3E4A', x, 1.6, -0.6);
-      // Parabrisas (frente +z), luneta y cartel de recorrido
-      k.box(W - 0.3, 1.25, 0.06, '#2F3E4A', 0, 1.35, L / 2);
-      k.box(W - 0.6, 0.35, 0.06, '#F2B134', 0, 2.6, L / 2 + 0.01);
-      k.box(W - 0.5, 0.9, 0.06, '#2F3E4A', 0, 1.7, -L / 2);
+      // Pollera (azul en los blancos) con el filete arriba
+      k.box(W + 0.02, lv.skirtHeight, L + 0.02, lv.skirt, 0, 0.35);
+      k.box(W + 0.03, 0.07, L + 0.03, lv.line, 0, 0.35 + lv.skirtHeight);
+      for (const sx of [-1, 1]) {
+        const x = sx * (W / 2 + 0.01);
+        // Ventanillas a los costados, con parantes del color de la carrocería
+        k.box(0.04, 1.0, L - 2.4, '#2F3E4A', x, 1.6, -0.6);
+        for (let z = -L / 2 + 0.6; z < L / 2 - 1.7; z += 1.35) k.box(0.06, 1.0, 0.12, lv.body, x, 1.6, z);
+        // Franjas del techo alternadas
+        for (let j = 0; lv.roof.length && j * 1.1 < L - 1.2; j++) k.box(0.05, 0.2, 0.8, lv.roof[j % lv.roof.length], x, 2.72, -L / 2 + 0.7 + j * 1.1);
+      }
+      // Parabrisas (frente +z), caja del cartel de recorrido y luneta con su cartelito de número
+      k.box(W - 0.3, 1.25, 0.06, '#2F3E4A', 0, 1.3, L / 2);
+      k.box(W - 0.4, 0.42, 0.08, SIGN.bg, 0, 2.56, L / 2);
+      k.box(W - 0.5, 0.9, 0.06, '#2F3E4A', 0, 1.6, -L / 2);
+      k.box(1.1, 0.36, 0.08, SIGN.bg, 0, 2.56, -L / 2);
       for (const x of [-0.85, 0.85]) {
         k.box(0.3, 0.18, 0.06, '#FFF4C2', x, 0.55, L / 2 + 0.02);
         k.box(0.3, 0.18, 0.06, '#C8402F', x, 0.55, -L / 2 - 0.02);
       }
+      // Rayas inclinadas de colores en la trompa
+      lv.accent.forEach((c, i) => k.boxC(0.16, 0.5, 0.03, c, -0.75 + i * 0.2, 0.95, L / 2 + 0.03, { rz: -0.6 }));
       k.box(W - 0.1, 0.18, 0.2, '#3A3A3A', 0, 0.3, L / 2);
       k.box(W - 0.1, 0.18, 0.2, '#3A3A3A', 0, 0.3, -L / 2);
       // Ruedas
@@ -201,12 +217,79 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
       k.box(1.4, 0.3, 2.2, '#BFBFBF', 0, B.height, -2);
       break;
     }
+    // ---------- Taxi ----------
+    case 'taxi': {
+      const L = T.depth;
+      const W = TAXI_W;
+      const glass = '#2F3E4A';
+      // Carrocería de sedán: perfil (z, y) de atrás para adelante, extruido a lo ancho
+      k.add(profile([[-2.2, 0.28], [-2.2, 0.86], [-1.55, 0.92], [-0.95, T.height], [0.55, T.height], [1.2, 0.92], [2.2, 0.8], [2.2, 0.28]], W), TC.body, -W / 2);
+      for (const sx of [-1, 1]) {
+        const x = sx * (W / 2);
+        // Ventanillas con el parante del medio
+        k.add(profile([[-1.42, 0.97], [-0.92, 1.38], [0.5, 1.38], [1.05, 0.97]], 0.02), glass, sx > 0 ? x : x - 0.02);
+        k.box(0.05, 0.42, 0.1, TC.body, x + sx * 0.02, 0.96, -0.2);
+        // Franja amarilla y damero sobre la rueda de atrás
+        k.box(0.03, 0.24, 3.3, TC.band, x + sx * 0.005, 0.56, -0.15);
+        for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) k.box(0.03, 0.07, 0.1, (i + j) % 2 ? TC.band : TC.check, x + sx * 0.006, 0.78 + j * 0.07, -2.05 + i * 0.1);
+        // Ruedas con tazas
+        for (const z of [-1.35, 1.35]) {
+          k.cylC(0.32, 0.24, '#1E1E1E', x - sx * 0.1, 0.32, z, 12, { rz: Math.PI / 2 });
+          k.cylC(0.19, 0.26, '#C9CED3', x - sx * 0.1, 0.32, z, 10, { rz: Math.PI / 2 });
+        }
+      }
+      // Parabrisas y luneta inclinados
+      k.boxC(W - 0.3, 0.03, 0.8, glass, 0, 1.19, 0.88, { rx: Math.atan2(0.53, 0.65) });
+      k.boxC(W - 0.3, 0.03, 0.76, glass, 0, 1.19, -1.25, { rx: -Math.atan2(0.53, 0.6) });
+      // Franja amarilla en el capó
+      k.boxC(W - 0.2, 0.03, 0.2, TC.band, 0, 0.88, 1.95, { rx: 0.12 });
+      // Ópticas, parrilla y paragolpes
+      for (const x of [-0.6, 0.6]) {
+        k.box(0.36, 0.14, 0.04, '#FFF4C2', x, 0.6, L / 2);
+        k.box(0.36, 0.14, 0.04, '#C8402F', x, 0.66, -L / 2);
+      }
+      k.box(0.6, 0.12, 0.04, '#222222', 0, 0.45, L / 2);
+      k.box(W + 0.04, 0.16, 0.12, '#3A3A3A', 0, 0.26, L / 2 - 0.03);
+      k.box(W + 0.04, 0.16, 0.12, '#3A3A3A', 0, 0.26, -L / 2 + 0.03);
+      // Copete de TAXI en el techo (las letras van en los extras)
+      for (const x of [-0.25, 0.25]) k.box(0.12, 0.04, 0.28, '#333333', x, T.height, -0.2);
+      k.box(0.74, 0.24, 0.24, '#FFFFFF', 0, T.height + 0.04, -0.2);
+      break;
+    }
   }
   return k.build();
 }
 
-/** Partes con textura de marca que no entran en la geometría fusionada (se clonan por obstáculo). */
-export function obstacleExtras(variant: ObstacleVariant): THREE.Object3D | null {
+/** Partes con textura que no entran en la geometría fusionada (se crean por obstáculo). */
+export function obstacleExtras(variant: ObstacleVariant, livery = 0): THREE.Object3D | null {
+  if (variant === 'bondi') {
+    // Cartel de recorrido adelante ("526  MALVIN") y el número atrás
+    const lv = LINES[livery % LINES.length];
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(B.width - 0.5, 0.34), signMaterial(`${lv.number}  ${lv.dest}`));
+    front.position.set(0, 2.77, B.length / 2 + 0.045);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.28), signMaterial(lv.number));
+    back.position.set(0, 2.74, -B.length / 2 - 0.045);
+    back.rotation.y = Math.PI;
+    return new THREE.Group().add(front, back);
+  }
+  if (variant === 'taxi') {
+    const g = new THREE.Group();
+    const roof = new THREE.PlaneGeometry(0.66, 0.2);
+    for (const sz of [1, -1]) {
+      const m = new THREE.Mesh(roof, taxiMaterial('roof'));
+      m.position.set(0, T.height + 0.16, -0.2 + sz * 0.125);
+      m.rotation.y = sz > 0 ? 0 : Math.PI;
+      g.add(m);
+    }
+    const door = new THREE.PlaneGeometry(1.1, 0.22);
+    for (const sx of [1, -1]) {
+      const m = new THREE.Mesh(door, taxiMaterial('door'));
+      m.position.set(sx * (TAXI_W / 2 + 0.025), 0.68, -0.2);
+      m.rotation.y = sx * (Math.PI / 2);
+      g.add(m);
+    }
+    return g;
+  }
   if (variant === 'cartelColgante') {
     const d = cartelDisc(0.62);
     d.rotation.y = -Math.PI / 2;
@@ -234,4 +317,74 @@ export function buildRamp(): THREE.BufferGeometry {
   // Franjas de seguridad al pie de la rampa
   for (let i = 0; i < 5; i++) k.box(w / 5, 0.04, 0.4, i % 2 ? '#2A2A2A' : '#F2C230', -w / 2 + w / 10 + (i * w) / 5, 0.0, -0.2);
   return k.build();
+}
+
+/** Perfil lateral (puntos z, y) extruido a lo ancho, de x = 0 a x = `width`. */
+function profile(pts: [number, number][], width: number): THREE.BufferGeometry {
+  // En el plano de la forma x = -z: al rotar π/2 en y, x pasa a ser z y la extrusión queda a lo largo de x
+  const shape = new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(-z, y)));
+  return new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: false }).rotateY(Math.PI / 2);
+}
+
+const signMats = new Map<string, THREE.Material>();
+
+/** Cartel de recorrido de leds naranja: el texto a lo ancho con una grilla de puntos encima. */
+function signMaterial(text: string): THREE.Material {
+  let m = signMats.get(text);
+  if (m) return m;
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 80;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = SIGN.bg;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = 'bold 62px "Arial Narrow", Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  const w = ctx.measureText(text).width;
+  ctx.save();
+  ctx.translate(c.width / 2, c.height / 2 + 3);
+  ctx.scale(Math.min(1, (c.width - 24) / w), 1);
+  ctx.shadowColor = SIGN.led;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = SIGN.led;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  for (let x = 0; x < c.width; x += 5) ctx.fillRect(x, 0, 1.5, c.height);
+  for (let y = 0; y < c.height; y += 5) ctx.fillRect(0, y, c.width, 1.5);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  // Basic: los leds se ven prendidos también de noche
+  m = new THREE.MeshBasicMaterial({ map: tex });
+  signMats.set(text, m);
+  return m;
+}
+
+const taxiMats: Partial<Record<'roof' | 'door', THREE.Material>> = {};
+
+/** Letras TAXI: negras sobre blanco en el copete (se prende de noche) y sobre la franja amarilla en las puertas. */
+function taxiMaterial(kind: 'roof' | 'door'): THREE.Material {
+  const cached = taxiMats[kind];
+  if (cached) return cached;
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = kind === 'roof' ? 78 : 52;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = kind === 'roof' ? '#FFFFFF' : TC.band;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#111111';
+  ctx.font = `bold ${Math.round(c.height * 0.8)}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TAXI', c.width / 2, c.height / 2 + 2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const m =
+    kind === 'roof'
+      ? glowEmissive(new THREE.MeshStandardMaterial({ map: tex, emissive: '#FFFFFF', emissiveMap: tex, roughness: 0.6 }), 0, 0.8)
+      : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
+  taxiMats[kind] = m;
+  return m;
 }

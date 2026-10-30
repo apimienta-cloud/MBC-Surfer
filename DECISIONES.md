@@ -47,7 +47,7 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Cielo:** degradé por zona (atardecer naranja-violeta en la Rambla); la niebla usa el color del horizonte. En el chunk de transición los colores se mezclan.
 - **Reloj:** HUD con "Domingo 18:00" que avanza 1 minuto cada 15 m. A las 23:59 (a ~5,4 km) se queda ahí. Con la hora va cayendo la noche, nunca del todo (`night.maxDarkness`), y se prenden los faroles.
 - **Obstáculos temáticos:** la variante visual depende de la zona (`config.zones.obstacles`); la caja de colisión sigue siendo la del tipo. Algunas zonas ajustan pesos: más altos en la Rambla (gaviotas), más bondis en 18 de Julio, más puestos en Tristán Narvaja.
-  - Los ómnibus usan 4 combinaciones de colores genéricas, sin nombres ni logos.
+  - Los ómnibus usan líneas reales de Montevideo (ver más abajo), sin nombres ni logos de empresas.
   - El que viene de frente muestra la trompa y el estacionado la cola, con la rampa detrás.
 - **Humo de parrilla:** la chimenea del Mercado del Puerto emite partículas cuando la birra está cerca.
 - **Rendimiento:** quedaron ~130–180 draw calls y ~80–130k triángulos según la zona. Las ventanas son planos de 2 triángulos y las `InstancedMesh` solo dibujan hasta la última instancia usada. En Fase 5 se puede fusionar la decoración por chunk si hace falta.
@@ -171,3 +171,33 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
     - No se verifica que la cuenta de IG sea de quien la anota; eso requiere login con Instagram/Meta. Gana el primero que anota el usuario.
     - Si alguien borra los datos del navegador, pierde el usuario. Se libera borrando su fila en la hoja "Jugadores".
   - **Antitrampa básico:** el servidor rechaza puntajes que no son creíbles para los metros recorridos (más de 3 puntos por metro). No es infalible: un juego 100 % en el navegador no puede evitar todas las trampas. Si se van a dar premios, conviene revisar el top a mano.
+
+## Ómnibus de Montevideo, taxis y pelusas en el Parque Rodó
+
+- **Ómnibus con líneas reales** (`config.colors.bondiLines`), a pedido de la marca y con fotos de referencia:
+  - **526 MALVIN:** verde entero con rayas de colores en la trompa.
+  - **104 PZA INDEPENDENCIA, 191 INSTRUCCIONES y 128 POCITOS:** blancos con la parte de abajo azul, filete rojo y franjas rojas y azules en el techo.
+  - Cartel de recorrido de leds naranja adelante y el número atrás (los estacionados muestran la cola). Los carteles se ven prendidos de noche.
+  - Se copian colores, números y destinos, no logos ni nombres de empresas.
+- **Taxi (tipo de obstáculo nuevo):** blanco con franja amarilla, damero sobre la rueda de atrás y copete de TAXI que se prende de noche.
+  - Mide 4,4 m de largo y 1,45 m de alto: se esquiva cambiando de carril o se salta al techo (hay que saltar unos 3 m antes) y se sigue corriendo arriba.
+  - Para el generador cuenta como pared, igual que los bloques, así que nunca es el único camino. Marca su carril como ocupado mientras dura, como un bondi corto, para que no queden fichitas ni power-ups adentro.
+  - Aparece en todo el mapa y más en 18 de Julio y Pocitos. Para no endurecer el juego, el peso de los bloques bajó de 2 a 1,2: la proporción de "paredes" queda casi igual que antes.
+  - Sin número de radiotaxi ni logos: solo "TAXI" en el copete y en las puertas.
+- **Pelusas en el Parque Rodó:** las de los plátanos en primavera. Pelotitas amarillas que flotan con brisa y vaivén, solo en los tramos del parque (`config.particles.fluff`). Aparecen delante de la birra, así que se cruzan al correr, y duran unos segundos.
+
+## Cinemática de entrada (grafiti PINTA VERNOS) y cinemática final con logros
+
+- **Intro (`src/cinematics/Intro.ts`, `config.intro`):** al abrir el juego, la birra pinta un grafiti en una pared que está detrás de la largada.
+  - El grafiti es una imagen (`public/assets/brand/grafiti-pinta-vernos.png`) armada con el logo oficial de MBC y el claim **PINTA VERNOS** en la fuente Eatbreak, con chorreados y sombra de aerosol. No se inventa el logo: se usa el archivo de marca. Como la fuente va dentro de la imagen, el juego no tiene que cargarla.
+  - **Fases:** agita la lata (con ruido de bolita), pinta el logo y después el claim, la cámara se abre y muestra la pared entera, y la birra saluda y se va a la largada. Termina exactamente en la cámara del menú, así que el grafiti queda de fondo.
+  - **Pintado:** una máscara se va pintando con toques de aerosol en zigzag, solo donde la imagen tiene pintura (zonas en `config.intro.graffiti.regions`). La birra sigue la boquilla con el brazo, salta para llegar arriba y salen gotitas del color de cada parte.
+  - **Duración:** unos 12 s. Se saltea tocando la pantalla o con cualquier tecla, y se apaga con `config.intro.enabled = false`.
+- **Cinemática final (game over):** se esconden obstáculos, fichitas y el Lunes, y la cámara se acerca a la birra.
+  - **Pose:** festeja con brillitos si hizo récord y, si no, saluda.
+  - **Encuadre:** en horizontal la birra queda a la izquierda y la tarjeta a la derecha; en celular, la birra arriba y la tarjeta abajo. La distancia de la cámara se calcula con el FOV para que la birra siempre ocupe lo mismo de pantalla.
+  - **La tarjeta:**
+    - El puntaje sube contando con tics. Después aparecen los metros y las fichitas, y el récord, con papelitos si es nuevo.
+    - Los **logros** entran de a uno: hasta qué hora aguantó, a qué zona llegó, saltos, rodadas, techos de bondi, power-ups y misiones cumplidas en la partida (en dorado).
+    - Los botones aparecen al final. Tocando en cualquier lado se ve todo de una.
+  - Los textos están en `config.texts` (con singular y plural) y los tiempos en `config.results`.

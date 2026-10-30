@@ -72,7 +72,7 @@ export class ZoneSystem {
 
   /** Variante visual para un obstáculo en esa posición. */
   variantAt(kind: ObstacleKind, s: number, r: number): ObstacleVariant {
-    if (kind === 'bondi') return 'bondi';
+    if (kind === 'bondi' || kind === 'taxi') return kind;
     const list = config.zones.obstacles[this.zoneAt(s).id].variants[kind];
     return list[Math.floor(r * list.length) % list.length];
   }

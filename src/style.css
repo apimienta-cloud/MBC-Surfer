@@ -450,3 +450,85 @@ h2 { font: 800 34px/1.1 var(--display); }
 /* Juice: rebote del contador de fichitas */
 .hud-pill.coins.bump { animation: bump 0.25s ease-out; }
 @keyframes bump { 40% { transform: scale(1.18); } }
+
+/* ---------- Intro: franjas de cine mientras la birra pinta el muro ---------- */
+.screen-intro { padding: 0; justify-content: flex-end; background: none; cursor: pointer; }
+.bars { position: absolute; left: 0; right: 0; height: 11vh; background: #000; }
+.bars.top { top: 0; animation: bar-top 0.6s ease-out; }
+.bars.bottom { bottom: 0; animation: bar-bottom 0.6s ease-out; }
+@keyframes bar-top { from { transform: translateY(-100%); } }
+@keyframes bar-bottom { from { transform: translateY(100%); } }
+.intro-skip {
+  position: relative;
+  margin-bottom: calc(3.5vh + env(safe-area-inset-bottom));
+  font: 700 13px/1 var(--sans);
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 50% { opacity: 0.35; } }
+
+/* ---------- Cinemática final: la birra en 3D y los resultados al costado (o abajo en vertical) ---------- */
+.screen-gameover {
+  justify-content: flex-end;
+  background: linear-gradient(180deg, rgba(30, 58, 95, 0) 28%, rgba(30, 58, 95, 0.75) 60%);
+}
+.results { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(420px, 100%); }
+.screen-gameover .calendar-sheet { min-height: 0; border-top-width: 28px; padding: 8px 16px 14px; gap: 4px; }
+.screen-gameover .ring { top: -40px; height: 22px; }
+.screen-gameover .sheet-day { font-size: clamp(28px, 8vw, 44px); }
+.screen-gameover h2 { font-size: 21px; }
+.screen-gameover .big-score { font-size: 30px; }
+.big-score small { font-size: 17px; opacity: 0.7; }
+.calendar-sheet .stats { display: flex; justify-content: center; align-items: center; gap: 18px; margin-top: 0; font-size: 20px; }
+.calendar-sheet .stats .coins { display: inline-flex; align-items: center; gap: 6px; }
+.calendar-sheet .muted { opacity: 0; transition: opacity 0.3s; }
+.calendar-sheet .muted.on { opacity: 0.85; }
+.calendar-sheet .muted.new-best.on { opacity: 1; }
+.ach-title { font: 800 12px/1 var(--sans); text-transform: uppercase; letter-spacing: 1.5px; color: var(--amber); margin-top: 4px; }
+.achievements { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.achievements li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #e8e2d4;
+  color: var(--deep);
+  font: 800 13px/1.15 var(--sans);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s, transform 0.25s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.achievements li.on { opacity: 1; transform: none; }
+.achievements li.gold { background: var(--gold); }
+.res-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; transition: opacity 0.3s, transform 0.3s; }
+.screen-gameover:not(.done) .res-actions { opacity: 0; transform: translateY(12px); pointer-events: none; }
+.res-skip { position: absolute; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 13px; max-width: none; }
+.screen-gameover.done .res-skip { display: none; }
+/* Horizontal: resultados a la derecha, la birra a la izquierda */
+@media (min-aspect-ratio: 1/1) {
+  .screen-gameover {
+    align-items: flex-end;
+    justify-content: center;
+    padding-right: max(5vw, 16px);
+    background: linear-gradient(90deg, rgba(30, 58, 95, 0) 38%, rgba(30, 58, 95, 0.72) 72%);
+  }
+}
+@media (max-height: 560px) {
+  .screen-gameover .sheet-day, .screen-gameover .ring { display: none; }
+  .screen-gameover .calendar-sheet { border-top-width: 14px; }
+  .results { gap: 8px; }
+  .res-actions .btn.primary { font-size: 22px; padding: 10px 22px; }
+}
+/* Vertical: la birra va arriba, así que los resultados se compactan */
+@media (max-aspect-ratio: 1/1) {
+  .screen-gameover .sheet-day, .screen-gameover .ring { display: none; }
+  .screen-gameover .calendar-sheet { border-top-width: 12px; padding-top: 10px; }
+  .achievements { gap: 5px; }
+  .achievements li { font-size: 12px; padding: 4px 9px; }
+  .res-actions { gap: 8px; }
+  .res-actions .btn.primary { font-size: 24px; padding: 11px 24px; }
+  .res-actions .menu-row { flex-wrap: nowrap; gap: 6px; }
+  .res-actions .menu-row .btn.small { font-size: 14px; padding: 9px 11px; white-space: nowrap; }
+}

@@ -24,6 +24,7 @@ export const Pocitos: ZoneDef = {
       // Parque Rodó: el castillito entre árboles y un escenario de MBC
       if (c.local === 8) c.landmark('castillito', 1, -c.L / 2, 7);
       if (c.local === 9) c.landmark('escenarioMBC', 1, -c.L / 2, 5, 0.35);
+      c.fluff();
       for (let i = 0; i < 14; i++) {
         const z = -c.rnd() * c.L;
         if ((c.local === 8 || c.local === 9) && Math.abs(z + c.L / 2) < 10) continue;

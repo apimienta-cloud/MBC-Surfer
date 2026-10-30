@@ -22,6 +22,7 @@ class Pool {
     private n: number,
     private gravity: number,
     private drag: number,
+    private sway = 0, // vaivén (pelusas que flotan)
   ) {
     this.mesh = new THREE.InstancedMesh(geo, mat, n);
     this.mesh.frustumCulled = false;
@@ -43,9 +44,13 @@ class Pool {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 
-  /** Emite una partícula (si el pool está lleno pisa la más vieja). */
-  emit(x: number, y: number, z: number, vx: number, vy: number, vz: number, life: number, size: number, spin = 0): void {
+  /** Emite una partícula (si el pool está lleno pisa la más vieja). Color opcional por partícula. */
+  emit(x: number, y: number, z: number, vx: number, vy: number, vz: number, life: number, size: number, spin = 0, tint?: THREE.Color): void {
     const i = this.next;
+    if (tint) {
+      this.mesh.setColorAt(i, tint);
+      this.mesh.instanceColor!.needsUpdate = true;
+    }
     this.next = (this.next + 1) % this.n;
     const k = i * 3;
     this.pos[k] = x;
@@ -80,6 +85,12 @@ class Pool {
           this.pos[k + a] += this.vel[k + a] * dt;
           this.rot[k + a] += this.spin[k + a] * dt;
         }
+        if (this.sway) {
+          const ph = this.life[i] * 1.7 + i;
+          this.pos[k] += Math.sin(ph) * this.sway * dt;
+          this.pos[k + 1] += Math.sin(ph * 0.8 + 1.3) * this.sway * 0.6 * dt;
+          this.pos[k + 2] += Math.cos(ph * 1.1) * this.sway * dt;
+        }
         // Achica al final de la vida
         const t = this.life[i] / this.maxLife[i];
         d.scale.setScalar(this.size[i] * Math.min(1, t * 3));
@@ -100,6 +111,9 @@ export class Particles {
   private sheets: Pool;
   private sparkles: Pool;
   private smokePuffs: Pool;
+  private fluffs: Pool;
+  private paints: Pool;
+  private tint = new THREE.Color();
 
   constructor() {
     this.foam = new Pool(
@@ -131,7 +145,20 @@ export class Particles {
       -0.6,
       0.6,
     );
-    this.group.add(this.foam.mesh, this.sheets.mesh, this.sparkles.mesh, this.smokePuffs.mesh);
+    // Pelusas: casi sin peso, con mucho freno y vaivén
+    const F = PC.fluff;
+    this.fluffs = new Pool(
+      new THREE.IcosahedronGeometry(1, 1),
+      new THREE.MeshStandardMaterial({ color: F.color, emissive: F.color, emissiveIntensity: 0.35, roughness: 1 }),
+      F.pool,
+      0.06,
+      0.8,
+      0.5,
+    );
+    // Pintura del aerosol (intro): sin gravedad, cada gota con su color
+    this.paints = new Pool(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: '#FFFFFF' }), PC.paintPool, 0, 0);
+    this.paints.mesh.setColorAt(0, this.tint.set('#FFFFFF'));
+    this.group.add(this.foam.mesh, this.sheets.mesh, this.sparkles.mesh, this.smokePuffs.mesh, this.fluffs.mesh, this.paints.mesh);
   }
 
   clear(): void {
@@ -139,11 +166,39 @@ export class Particles {
     this.sheets.clear();
     this.sparkles.clear();
     this.smokePuffs.clear();
+    this.fluffs.clear();
+    this.paints.clear();
   }
 
   /** Bocanada de humo (parrilla del Mercado del Puerto). */
   smoke(x: number, y: number, z: number): void {
     this.smokePuffs.emit(x + (Math.random() - 0.5) * 0.4, y, z, (Math.random() - 0.5) * 0.6, 1.2 + Math.random() * 0.6, 0.4, 3 + Math.random(), 0.6 + Math.random() * 0.5, 1);
+  }
+
+  /** Pelusa de plátano flotando (Parque Rodó). */
+  fluff(x: number, y: number, z: number): void {
+    const F = PC.fluff;
+    this.fluffs.emit(
+      x,
+      y,
+      z,
+      0.3 + Math.random() * 0.5, // brisa
+      (Math.random() - 0.4) * 0.3,
+      (Math.random() - 0.5) * 0.6,
+      F.life[0] + Math.random() * (F.life[1] - F.life[0]),
+      F.size[0] + Math.random() * (F.size[1] - F.size[0]),
+      2,
+    );
+  }
+
+  /** Chorro del aerosol: gotitas del pico (x, y, z) al punto del muro (tx, ty, tz). */
+  spray(x: number, y: number, z: number, tx: number, ty: number, tz: number, color: string): void {
+    this.tint.set(color);
+    const flight = 0.16;
+    for (let i = 0; i < 3; i++) {
+      const j = (): number => (Math.random() - 0.5) * 0.35;
+      this.paints.emit(x, y, z, (tx + j() - x) / flight, (ty + j() - y) / flight, (tz - z) / flight, flight * (0.85 + Math.random() * 0.15), 0.025 + Math.random() * 0.03, 0, this.tint);
+    }
   }
 
   /** Puf de espuma al saltar. */
@@ -200,6 +255,8 @@ export class Particles {
     this.sheets.update(dt);
     this.sparkles.update(dt);
     this.smokePuffs.update(dt);
+    this.fluffs.update(dt);
+    this.paints.update(dt);
   }
 }
 

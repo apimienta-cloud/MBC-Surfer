@@ -3,6 +3,7 @@ import { POWER_ICONS, SOUND_OFF, SOUND_ON } from './icons';
 import type { ActivePower } from '../world/PowerUps';
 import type { MissionView } from '../game/Missions';
 import type { RankEntry } from '../net/Ranking';
+import type { Sfx } from '../audio/Audio';
 
 const T = config.texts;
 
@@ -23,9 +24,10 @@ export interface UIHandlers {
   onOpenRanking: () => void;
   onRankingJoin: (raw: string) => void;
   onRankingChange: () => void;
+  onSkipIntro: () => void;
 }
 
-export type Screen = 'menu' | 'playing' | 'paused' | 'caught' | 'gameover' | 'skins' | 'missions' | 'ranking';
+export type Screen = 'intro' | 'menu' | 'playing' | 'paused' | 'caught' | 'gameover' | 'skins' | 'missions' | 'ranking';
 
 export interface GameOverInfo {
   score: number;
@@ -33,7 +35,17 @@ export interface GameOverInfo {
   coins: number;
   bestScore: number;
   isNewBest: boolean;
+  achievements: Achievement[];
 }
+
+/** Logro de la partida que aparece en la cinemática final. */
+export interface Achievement {
+  icon: string;
+  text: string;
+  gold?: boolean;
+}
+
+const R = config.results;
 
 const fmt = (n: number): string => Math.floor(n).toLocaleString('es-UY');
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -52,6 +64,9 @@ export class UI {
   private powersEl: HTMLElement;
   private feriadoBtn: HTMLButtonElement;
   private hudCache = { score: -1, meters: -1, coins: -1, mult: -1 };
+  /** Cinemática final en curso: cada una tiene su número para cortar la anterior. */
+  private resultsRun = 0;
+  private finishResults: (() => void) | null = null;
 
   constructor(root: HTMLElement, h: UIHandlers) {
     this.root = root;
@@ -81,6 +96,13 @@ export class UI {
     this.bubble = this.el('div', 'bubble');
     this.toastEl = this.el('div', 'zone-toast');
     this.noticeEl = this.el('div', 'notice');
+
+    // ---------- Intro (franjas de cine) ----------
+    const intro = this.panel('intro');
+    intro.innerHTML = `
+      <div class="bars top"></div><div class="bars bottom"></div>
+      <p class="intro-skip">${isTouch ? T.introSkip : T.introSkipDesktop}</p>`;
+    intro.addEventListener('pointerdown', () => h.onSkipIntro());
 
     // ---------- Menú ----------
     const menu = this.panel('menu');
@@ -117,21 +139,32 @@ export class UI {
     // ---------- Game over ----------
     const over = this.panel('gameover');
     over.innerHTML = `
-      <div class="calendar-sheet"><div class="ring"></div><div class="ring"></div>
-        <div class="sheet-day">LUNES</div>
-        <h2>${T.gameOver}</h2>
-        <p class="big-score" data-id="score"></p>
-        <p class="stats" data-id="stats"></p>
-        <p class="muted" data-id="best"></p>
-        <p class="rank-line" data-id="rank"></p>
-        <div class="confetti" data-id="confetti"></div>
-      </div>
-      <button class="btn small rank-cta" data-act="ranking" data-id="rankCta">${T.rankingCta}</button>
-      <button class="btn primary" data-act="restart">${T.rematch}</button>
-      <div class="menu-row">
-        <button class="btn small" data-act="share">${T.share}</button>
-        <button class="btn small" data-act="menu">${T.menu}</button>
+      <div class="results">
+        <div class="calendar-sheet"><div class="ring"></div><div class="ring"></div>
+          <div class="sheet-day">LUNES</div>
+          <h2>${T.gameOver}</h2>
+          <p class="big-score"><span data-id="score">0</span> <small>${T.score}</small></p>
+          <p class="stats"><span><b data-id="meters">0</b> ${T.meters}</span><span class="coins"><span class="coin-dot"></span><b data-id="coins">0</b></span></p>
+          <p class="muted" data-id="best"></p>
+          <p class="rank-line" data-id="rank"></p>
+          <p class="ach-title">${T.achievements}</p>
+          <ul class="achievements" data-id="ach"></ul>
+          <div class="confetti" data-id="confetti"></div>
+        </div>
+        <div class="res-actions">
+          <button class="btn primary" data-act="restart">${T.rematch}</button>
+          <div class="menu-row">
+            <button class="btn small rank-cta" data-act="ranking" data-id="rankCta">${T.rankingCta}</button>
+            <button class="btn small" data-act="share">${T.share}</button>
+            <button class="btn small" data-act="menu">${T.menu}</button>
+          </div>
+        </div>
+        <p class="hint res-skip">${T.tapToSkip}</p>
       </div>`;
+    // Tocar en cualquier lado (menos un botón) muestra todo de una
+    over.addEventListener('pointerdown', (e) => {
+      if (!(e.target as HTMLElement).closest('button')) this.finishResults?.();
+    });
 
     // ---------- Skins ----------
     const skins = this.panel('skins');
@@ -170,7 +203,7 @@ export class UI {
       h.onRankingJoin((this.q(ranking, 'ig') as HTMLInputElement).value);
     });
 
-    this.screens = { menu, paused: pause, gameover: over, skins, missions, ranking };
+    this.screens = { intro, menu, paused: pause, gameover: over, skins, missions, ranking };
 
     const acts: Record<string, () => void> = {
       play: h.onPlay,
@@ -288,25 +321,103 @@ export class UI {
     this.bubble.style.transform = `translate(${cx - w / 2}px, ${cy - this.bubble.offsetHeight - 14}px)`;
   }
 
-  showGameOver(r: GameOverInfo): void {
+  /**
+   * Cinemática final: el puntaje sube contando, después metros y fichitas, el récord y los logros de a uno.
+   * Los botones aparecen al final; tocando se ve todo de una.
+   */
+  showGameOver(r: GameOverInfo, sfx: (s: Sfx) => void): void {
     const s = this.screens.gameover;
-    this.q(s, 'score').textContent = `${fmt(r.score)} ${T.score}`;
-    this.q(s, 'stats').textContent = `${fmt(r.meters)} ${T.meters} · ${r.coins} ${T.coins}`;
+    const run = ++this.resultsRun;
+    const alive = (): boolean => run === this.resultsRun;
+    const score = this.q(s, 'score');
+    const meters = this.q(s, 'meters');
+    const coins = this.q(s, 'coins');
     const best = this.q(s, 'best');
-    best.textContent = r.isNewBest ? `🎉 ${T.newBest}` : `${T.best}: ${fmt(r.bestScore)}`;
-    best.classList.toggle('new-best', r.isNewBest);
-    // Festejo: papelitos de colores si hay récord nuevo
+    score.textContent = meters.textContent = coins.textContent = '0';
+    best.textContent = '';
+    best.classList.remove('new-best', 'on');
     const conf = this.q(s, 'confetti');
     conf.innerHTML = '';
-    if (r.isNewBest) {
+    const list = this.q(s, 'ach');
+    list.innerHTML = r.achievements.map((a) => `<li class="${a.gold ? 'gold' : ''}"><span>${a.icon}</span>${esc(a.text)}</li>`).join('');
+    const items = [...list.children] as HTMLElement[];
+    s.classList.remove('done');
+    this.show('gameover');
+
+    const timers: number[] = [];
+    const at = (sec: number, fn: () => void): void => {
+      timers.push(window.setTimeout(() => alive() && fn(), sec * 1000));
+    };
+    /** Cuenta de 0 al valor, con un tic cada tanto. */
+    const count = (el: HTMLElement, to: number, dur: number, tick: boolean): void => {
+      const t0 = performance.now();
+      let lastTick = 0;
+      const stepFn = (now: number): void => {
+        if (!alive() || s.classList.contains('done')) return;
+        const k = Math.min(1, (now - t0) / (dur * 1000));
+        el.textContent = fmt(to * (1 - Math.pow(1 - k, 3)));
+        if (tick && now - lastTick > 75 && k < 1) {
+          lastTick = now;
+          sfx('tick');
+        }
+        if (k < 1) requestAnimationFrame(stepFn);
+      };
+      requestAnimationFrame(stepFn);
+    };
+    const showBest = (): void => {
+      best.textContent = r.isNewBest ? `🎉 ${T.newBest}` : `${T.best}: ${fmt(r.bestScore)}`;
+      best.classList.toggle('new-best', r.isNewBest);
+      best.classList.add('on');
+    };
+    const confetti = (): void => {
+      // Festejo: papelitos de colores si hay récord nuevo
       const cols = ['#E63946', '#F2B134', '#7FC4E8', '#3E8E41', '#C8862B'];
       for (let i = 0; i < 40; i++) {
         const p = document.createElement('i');
         p.style.cssText = `left:${Math.random() * 100}%;background:${cols[i % cols.length]};animation-delay:${Math.random() * 0.6}s;animation-duration:${1.4 + Math.random()}s`;
         conf.appendChild(p);
       }
-    }
-    this.show('gameover');
+    };
+
+    let t = 0.45;
+    at(t, () => count(score, r.score, R.countTime, true));
+    t += R.countTime + 0.15;
+    at(t, () => {
+      count(meters, r.meters, 0.6, false);
+      count(coins, r.coins, 0.6, false);
+    });
+    t += 0.7;
+    at(t, () => {
+      showBest();
+      if (r.isNewBest) {
+        confetti();
+        sfx('mission');
+      }
+    });
+    t += r.isNewBest ? 0.6 : 0.3;
+    items.forEach((li) => {
+      at(t, () => {
+        li.classList.add('on');
+        sfx('coin');
+      });
+      t += R.itemDelay;
+    });
+    const finish = (): void => {
+      if (!alive()) return;
+      timers.forEach(clearTimeout);
+      this.finishResults = null;
+      score.textContent = fmt(r.score);
+      meters.textContent = fmt(r.meters);
+      coins.textContent = fmt(r.coins);
+      if (!best.classList.contains('on')) {
+        showBest();
+        if (r.isNewBest) confetti();
+      }
+      items.forEach((li) => li.classList.add('on'));
+      s.classList.add('done');
+    };
+    this.finishResults = finish;
+    at(t + 0.2, finish);
   }
 
   renderSkins(skins: SkinDef[], owned: string[], selected: string, total: number): void {

@@ -45,6 +45,8 @@ export interface ChunkCtx {
   banner(text: string, z: number): void;
   /** Gigantografía con una foto de los locales de MBC, al costado de la pista. */
   billboard(side: Side, z: number): void;
+  /** Pelusas amarillas flotando en el aire en todo el chunk (plátanos del Parque Rodó). */
+  fluff(): void;
 }
 
 export interface ZoneDef {
