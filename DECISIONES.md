@@ -161,10 +161,13 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Ranking:**
   - La gente se anota con su **usuario de Instagram**: se acepta "@usuario", "usuario" o el link del perfil, y se valida con las reglas de IG (letras, números, puntos y guiones bajos; hasta 30).
   - Se sube el **mejor puntaje** de cada usuario. El game over muestra el puesto ("Estás #12 en el ranking") o, si no está anotado, el botón "Anotate en el ranking".
-  - **Servidor:** Supabase con plan gratis, para que el sitio siga siendo estático en GitHub Pages. La base y las funciones están en `supabase/ranking.sql`; la URL y la clave pública van en `config.ranking`.
-  - Mientras no esté conectado, el ranking funciona solo en el dispositivo y lo avisa en pantalla.
-  - **Nadie puede pisar el usuario de otro:** al anotarse, cada dispositivo genera un secreto y el servidor guarda solo su hash. Para subir puntajes con ese usuario hay que tener el mismo secreto.
+  - **Servidor:** una planilla de Google Sheets con un script de Apps Script publicado como aplicación web (`apps-script/Ranking.gs`). Se eligió en lugar de Supabase para no abrir otra cuenta y porque el equipo puede mirar, ordenar y exportar el ranking como cualquier planilla (hoja "Top").
+    - El juego le habla por POST con `text/plain` para que el navegador no haga preflight, que Apps Script no contesta.
+    - Las escrituras usan un lock y el top se cachea 20 s.
+    - Aguanta tráfico moderado (Apps Script limita las ejecuciones simultáneas). Si el juego explota, conviene pasar a Cloudflare Workers con la misma API.
+  - Mientras `config.ranking.endpoint` esté vacío, el ranking funciona solo en el dispositivo y lo avisa en pantalla.
+  - **Nadie puede pisar el usuario de otro:** al anotarse, cada dispositivo genera un secreto y la planilla guarda solo su hash. Para subir puntajes con ese usuario hay que tener el mismo secreto.
   - **Límites conocidos:**
     - No se verifica que la cuenta de IG sea de quien la anota; eso requiere login con Instagram/Meta. Gana el primero que anota el usuario.
-    - Si alguien borra los datos del navegador, pierde el usuario. Se puede liberar a mano desde la tabla de Supabase.
+    - Si alguien borra los datos del navegador, pierde el usuario. Se libera borrando su fila en la hoja "Jugadores".
   - **Antitrampa básico:** el servidor rechaza puntajes que no son creíbles para los metros recorridos (más de 3 puntos por metro). No es infalible: un juego 100 % en el navegador no puede evitar todas las trampas. Si se van a dar premios, conviene revisar el top a mano.

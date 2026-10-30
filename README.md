@@ -51,11 +51,11 @@ const v = await import('/src/dev/validateGenerator.ts'); v.validate(30, 6000)
 const s = await import('/src/dev/snap.ts'); await s.grid([0, 900, 1800, 2600]); s.close()
 ```
 
-## Ranking online (Supabase)
+## Ranking online (Google Sheets)
 
-Mientras `config.ranking` esté vacío, el ranking funciona solo en cada dispositivo. Para conectarlo:
+El ranking se guarda en una planilla de Google ("Escapale al Lunes - Ranking") con el script [`apps-script/Ranking.gs`](apps-script/Ranking.gs) publicado como aplicación web. Si `config.ranking.endpoint` está vacío, el ranking funciona solo en cada dispositivo.
 
-1. Crear un proyecto gratis en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pegar y ejecutar [`supabase/ranking.sql`](supabase/ranking.sql).
-3. En **Project Settings → API**, copiar la *Project URL* y la clave *anon public*, y pegarlas en `config.ranking.supabaseUrl` y `config.ranking.supabaseAnonKey`. La clave anon es pública: la tabla no se puede tocar directo, todo pasa por las funciones del SQL.
-4. Para ver o borrar jugadores: **Table Editor → players**.
+- **Ver el ranking:** hoja **Top** de la planilla (ordenado, se actualiza solo).
+- **Liberar un usuario o borrar un tramposo:** borrar su fila en la hoja **Jugadores**.
+- **Cambiar el script:** pegar la versión nueva en *Extensiones → Apps Script* y en *Implementar → Gestionar implementaciones* editar la implementación existente con "Nueva versión" (así la URL no cambia).
+- **Armarlo de cero:** planilla nueva → *Extensiones → Apps Script* → pegar `Ranking.gs` → *Implementar → Nueva implementación → Aplicación web*, ejecutar como "Yo" y acceso "Cualquier usuario" → autorizar → copiar la URL `/exec` en `config.ranking.endpoint`.

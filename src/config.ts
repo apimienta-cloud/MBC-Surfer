@@ -363,11 +363,11 @@ export const config = {
   },
 
   // Ranking online: la gente se anota con su usuario de Instagram y sube su mejor puntaje.
-  // Usa Supabase (ver supabase/ranking.sql y README). Si url o anonKey están vacíos,
-  // el ranking funciona solo en este dispositivo.
+  // Se guarda en una planilla de Google Sheets con el script de apps-script/Ranking.gs (ver README).
+  // Si endpoint está vacío, el ranking funciona solo en este dispositivo.
   ranking: {
-    supabaseUrl: '', // TODO(brand): https://<proyecto>.supabase.co
-    supabaseAnonKey: '', // TODO(brand): clave "anon public" del proyecto (es pública, va en el cliente)
+    // Aplicación web de Apps Script de la planilla "Escapale al Lunes - Ranking"
+    endpoint: 'https://script.google.com/macros/s/AKfycbwkaJEHlk2zCGtn8JDIub4BFTKh7Qed_gPXtV9SKMe3x84tza0-2r655yVz-qSB2Ga4-g/exec',
     top: 50,
   },
 

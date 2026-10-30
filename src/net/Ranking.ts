@@ -1,6 +1,6 @@
 import { config } from '../config';
 
-// Ranking por usuario de Instagram. Online con Supabase (funciones de supabase/ranking.sql);
+// Ranking por usuario de Instagram. Online con una planilla de Google Sheets (apps-script/Ranking.gs);
 // si no está configurado, un ranking local de este dispositivo para que la pantalla funcione igual.
 
 const R = config.ranking;
@@ -15,7 +15,7 @@ export interface RankEntry {
 
 export type ClaimResult = 'ok' | 'taken' | 'invalid' | 'error';
 
-export const isOnline = (): boolean => Boolean(R.supabaseUrl && R.supabaseAnonKey);
+export const isOnline = (): boolean => Boolean(R.endpoint);
 
 /** "@Usuario", "instagram.com/usuario/" o " usuario " → "usuario". null si no es un usuario válido de IG. */
 export function normalizeHandle(raw: string): string | null {
@@ -33,14 +33,17 @@ export function newToken(): string {
   return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 }
 
-async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(`${R.supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/${fn}`, {
+/** POST al script. Va como text/plain para que el navegador no haga preflight (Apps Script no lo contesta). */
+async function call<T>(body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(R.endpoint, {
     method: 'POST',
-    headers: { apikey: R.supabaseAnonKey, Authorization: `Bearer ${R.supabaseAnonKey}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${fn}: ${res.status}`);
-  return (await res.json()) as T;
+  if (!res.ok) throw new Error(`ranking: ${res.status}`);
+  const data = (await res.json()) as T & { error?: string };
+  if (data.error) throw new Error(`ranking: ${data.error}`);
+  return data;
 }
 
 // ---------- Ranking local (sin servidor) ----------
@@ -75,7 +78,7 @@ export async function claim(handle: string, token: string): Promise<ClaimResult>
     return 'ok';
   }
   try {
-    return await rpc<ClaimResult>('register_player', { p_handle: handle, p_token: token });
+    return (await call<{ result: ClaimResult }>({ action: 'claim', handle, token })).result;
   } catch {
     return 'error';
   }
@@ -95,7 +98,7 @@ export async function submit(handle: string, token: string, score: number, meter
     return sorted(rows).find((r) => r.handle === handle)!.pos;
   }
   try {
-    const pos = await rpc<number>('submit_score', { p_handle: handle, p_token: token, p_score: Math.floor(score), p_meters: Math.floor(meters) });
+    const { pos } = await call<{ pos: number }>({ action: 'submit', handle, token, score: Math.floor(score), meters: Math.floor(meters) });
     return pos > 0 ? pos : null;
   } catch {
     return null;
@@ -112,7 +115,7 @@ export async function top(handle: string): Promise<RankEntry[] | null> {
     return list;
   }
   try {
-    return await rpc<RankEntry[]>('get_ranking', { p_limit: R.top, p_handle: handle || null });
+    return (await call<{ list: RankEntry[] }>({ action: 'top', limit: R.top, handle })).list;
   } catch {
     return null;
   }
