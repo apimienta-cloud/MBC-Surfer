@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /**
  * Kit para armar modelos low-poly con primitivas y colores por vértice.
@@ -59,26 +59,51 @@ export class Kit {
   }
 
   /** Cilindro apoyado: y es la base. */
-  cyl(rTop: number, rBot: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 12, o?: PartOpts): this {
+  cyl(rTop: number, rBot: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 20, o?: PartOpts): this {
     return this.add(new THREE.CylinderGeometry(rTop, rBot, h, seg), color, x, y + h / 2, z, o);
   }
 
   /** Cilindro centrado (útil rotado). */
-  cylC(r: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 12, o?: PartOpts): this {
+  cylC(r: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 20, o?: PartOpts): this {
     return this.add(new THREE.CylinderGeometry(r, r, h, seg), color, x, y, z, o);
   }
 
-  cone(r: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 12, o?: PartOpts): this {
+  /** Cápsula vertical centrada (piernas, brazos, torsos redondeados). `len` es el tramo recto. */
+  capsule(r: number, len: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts): this {
+    return this.add(new THREE.CapsuleGeometry(r, len, 4, 12), color, x, y, z, o);
+  }
+
+  cone(r: number, h: number, color: string, x = 0, y = 0, z = 0, seg = 20, o?: PartOpts): this {
     return this.add(new THREE.ConeGeometry(r, h, seg), color, x, y + h / 2, z, o);
   }
 
-  sphere(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts, detail = 1): this {
+  sphere(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts, detail = 2): this {
     return this.add(new THREE.IcosahedronGeometry(r, detail), color, x, y, z, o);
+  }
+
+  /**
+   * Esfera irregular y suave (copas de árboles, arbustos, rocas): se deforma con ruido
+   * según la posición, así las costuras quedan cerradas y el sombreado es continuo.
+   */
+  blob(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts, bump = 0.14, seed = 0): this {
+    const g = mergeVertices(new THREE.IcosahedronGeometry(r, 3).deleteAttribute('normal').deleteAttribute('uv'));
+    const p = g.attributes.position as THREE.BufferAttribute;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).normalize();
+      const n =
+        Math.sin(v.x * 3.1 + seed) * Math.sin(v.y * 2.7 + seed * 1.7) * Math.sin(v.z * 3.4 + seed * 0.6) +
+        0.5 * Math.sin(v.x * 7.3 - seed) * Math.sin(v.y * 6.1 + seed) * Math.sin(v.z * 6.7);
+      v.multiplyScalar(r * (1 + bump * n));
+      p.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals();
+    return this.add(g, color, x, y, z, o);
   }
 
   /** Media esfera (cúpula) apoyada en y. */
   dome(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts): this {
-    return this.add(new THREE.SphereGeometry(r, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), color, x, y, z, o);
+    return this.add(new THREE.SphereGeometry(r, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), color, x, y, z, o);
   }
 
   /**
@@ -132,8 +157,8 @@ export class Kit {
   }
 }
 
-/** Material compartido para todo lo armado con el Kit (colores por vértice, sombreado plano). */
-export const kitMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true });
+/** Material compartido para todo lo armado con el Kit (colores por vértice, sombreado suave). */
+export const kitMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78 });
 
 // ---------- Cosas que se prenden de noche (guirnaldas, carteles, ventanales) ----------
 

@@ -16,6 +16,7 @@ import { UI } from '../ui/UI';
 import * as Save from '../storage/Save';
 import * as Ranking from '../net/Ranking';
 import { Intro } from '../cinematics/Intro';
+import { Look, castShadows } from '../fx/Look';
 import type { Achievement } from '../ui/UI';
 
 type State = 'intro' | 'menu' | 'playing' | 'paused' | 'caught' | 'gameover';
@@ -76,6 +77,7 @@ export class Game {
   private tmpTarget = new THREE.Vector3();
   private menuPos = new THREE.Vector3();
   private menuLook = new THREE.Vector3();
+  private look: Look;
 
   constructor(container: HTMLElement, uiRoot: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -88,6 +90,8 @@ export class Game {
     // Cielo, luces y niebla los maneja Sky según la zona y la hora
     this.scene.fog = this.fog;
     this.scene.add(this.sky.group, this.sky.hemi, this.sky.sun);
+    this.look = new Look(this.renderer, this.scene, this.camera, this.sky.sun);
+    for (const o of [this.chaser.root, this.intro.group, this.powerups.group, this.coins.mesh]) castShadows(o);
 
     this.scene.add(this.intro.group, this.chunks.group, this.obstacles.group, this.coins.mesh, this.powerups.group, this.player.root, this.chaser.root, this.particles.group);
     this.obstacles.powerSpawner = (lane, s) => this.powerups.spawn(this.powerups.randomType(), lane, s);
@@ -665,6 +669,8 @@ export class Game {
     // Cielo, niebla y noche según zona y hora; los faroles se prenden
     this.sky.update(this.camera, p.s, this.fog);
     this.chunks.setNight(this.sky.darkness);
+    this.look.setNight(this.sky.darkness);
+    this.look.follow(p.x, p.s);
     this.updateHudWorld(st);
 
     // Globo de diálogo del Lunes, proyectado a pantalla
@@ -676,7 +682,7 @@ export class Game {
       this.ui.setBubble(null);
     }
 
-    this.renderer.render(this.scene, this.camera);
+    this.look.render();
   }
 
   /** Cámara del menú: de frente a la birra, hamacándose un poco. */
@@ -752,6 +758,10 @@ export class Game {
       this.fpsLowTime = 0;
       this.fpsAvg = 60;
       this.onResize();
+    } else if (this.fpsLowTime > 2 && this.look.degrade()) {
+      // Resolución ya al mínimo: se apagan efectos caros
+      this.fpsLowTime = 0;
+      this.fpsAvg = 60;
     } else if (this.fpsHighTime > 8 && this.qualityScale < 1) {
       this.qualityScale = Math.min(1, this.qualityScale + Q.step / max);
       this.fpsHighTime = 0;
@@ -764,6 +774,7 @@ export class Game {
     const h = window.innerHeight;
     this.renderer.setPixelRatio(this.targetPixelRatio());
     this.renderer.setSize(w, h);
+    this.look?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   };

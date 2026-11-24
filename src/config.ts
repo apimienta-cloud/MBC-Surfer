@@ -259,6 +259,39 @@ export const config = {
     step: 0.25,
   },
 
+  /** Look: tono, sombras reales, reflejos y posproceso. En celular se baja la resolución de sombras y del brillo. */
+  graphics: {
+    exposure: 1.0,
+    /** Luz del sol y luz de relleno del cielo: con menos relleno las sombras se leen más. */
+    sun: 2.5,
+    hemi: 0.8,
+    /** Reflejos suaves de un "estudio" (dan brillo a la birra, los autos y los vidrios). */
+    envIntensity: 0.45,
+    shadows: {
+      enabled: true,
+      mapSize: 2048,
+      mapSizeMobile: 1024,
+      /** Mitad del lado del cuadro de sombras alrededor de la birra (m). */
+      half: 30,
+      /** El cuadro se corre hacia adelante para cubrir lo que ve la cámara. */
+      ahead: 18,
+      /** Dirección de donde viene el sol (desde el centro del cuadro). */
+      sunDir: [-0.25, 1, 0.62] as [number, number, number],
+      softness: 3,
+    },
+    post: {
+      enabled: true,
+      /** Antialias del posproceso (MSAA) cuando no hay oclusión ambiental; 0 lo apaga. */
+      samples: 4,
+      /** Oclusión ambiental (sombreado suave en rincones, bases y debajo de las cosas). En celular va a media resolución. */
+      ao: { enabled: true, radius: 1.6, falloff: 1, intensity: 2.6 },
+      bloom: { strength: 0.5, radius: 0.45, threshold: 1.25 },
+      vignette: 0.32,
+      saturation: 1.08,
+      contrast: 1.06,
+    },
+  },
+
   physics: {
     fixedDt: 1 / 120,
     maxSubSteps: 10,

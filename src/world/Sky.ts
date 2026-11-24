@@ -54,8 +54,8 @@ interface HorizonItem {
  */
 export class Sky {
   readonly group = new THREE.Group();
-  readonly hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.5);
-  readonly sun = new THREE.DirectionalLight(0xfff1d6, 1.7);
+  readonly hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, config.graphics.hemi);
+  readonly sun = new THREE.DirectionalLight(0xfff1d6, config.graphics.sun);
   private dome: THREE.Mesh;
   private uniforms = {
     top: { value: new THREE.Color() },
@@ -97,6 +97,7 @@ export class Sky {
             float h = vDir.y;
             vec3 c = h > 0.0 ? mix(horizon, top, pow(min(1.0, h * 2.2), 0.7)) : mix(horizon, bottom, min(1.0, -h * 4.0));
             gl_FragColor = vec4(c, 1.0);
+            #include <tonemapping_fragment>
             #include <colorspace_fragment>
           }`,
       }),
@@ -108,7 +109,7 @@ export class Sky {
     for (const zone of zones.all) {
       if (!zone.horizon) continue;
       const h = zone.horizon;
-      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, fog: false, transparent: true, opacity: 0, roughness: 1 });
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, fog: false, transparent: true, opacity: 0, roughness: 1 });
       const mesh = new THREE.Mesh(getLandmark(h.id).geo, mat);
       mesh.scale.setScalar(h.scale ?? 1);
       mesh.rotation.y = h.rotY ?? 0;
@@ -138,9 +139,9 @@ export class Sky {
     fog.color.copy(this.hor);
     this.dome.position.copy(camera.position);
 
-    this.hemi.intensity = 1.5 * (1 - 0.55 * this.darkness);
+    this.hemi.intensity = config.graphics.hemi * (1 - 0.45 * this.darkness);
     this.hemi.color.copy(this.tmp.set('#ffffff').lerp(this.top, 0.25));
-    this.sun.intensity = 1.7 * (1 - 0.75 * this.darkness);
+    this.sun.intensity = config.graphics.sun * (1 - 0.75 * this.darkness);
     this.sun.color.copy(this.warm).lerp(this.tmp2.copy(this.hor), 0.45);
 
     // Siluetas del horizonte: aparecen y desaparecen con la zona, teñidas por la bruma

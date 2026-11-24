@@ -83,8 +83,8 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
       // Bandada volando bajo
       const birds: [number, number, number][] = [[-0.9, 1.45, 0], [0, 1.75, 0.15], [0.85, 1.5, -0.1], [-0.4, 2.0, -0.15], [0.45, 2.05, 0.1]];
       for (const [x, y, z] of birds) {
-        k.sphere(0.16, '#FFFFFF', x, y, z, { sz: 1.9 }, 0);
-        k.sphere(0.09, '#FFFFFF', x, y + 0.05, z + 0.3, undefined, 0);
+        k.sphere(0.16, '#FFFFFF', x, y, z, { sz: 1.9 }, 2);
+        k.sphere(0.09, '#FFFFFF', x, y + 0.05, z + 0.3, undefined, 1);
         k.cone(0.03, 0.12, '#F2B134', x, y + 0.03, z + 0.42, 4, { rx: Math.PI / 2 });
         k.boxC(0.5, 0.03, 0.18, '#B8BEC4', x - 0.28, y + 0.08, z, { rz: 0.35 });
         k.boxC(0.5, 0.03, 0.18, '#B8BEC4', x + 0.28, y + 0.08, z, { rz: -0.35 });
@@ -103,7 +103,7 @@ export function buildObstacleModel(variant: ObstacleVariant, livery = 0): THREE.
       k.box(2.4, 0.3, 0.05, '#E63946', 0, 2.15, 0.85);
       k.box(2.2, 1.2, 0.05, '#C8B89A', 0, 1.0, -0.7);
       const fruit = ['#E07A2E', '#D23B2B', '#7CB342', '#F2C230'];
-      for (let i = 0; i < 8; i++) k.sphere(0.16, fruit[i % 4], -0.8 + (i % 4) * 0.52, 1.15, -0.25 + Math.floor(i / 4) * 0.5, undefined, 0);
+      for (let i = 0; i < 8; i++) k.sphere(0.16, fruit[i % 4], -0.8 + (i % 4) * 0.52, 1.15, -0.25 + Math.floor(i / 4) * 0.5, undefined, 2);
       break;
     }
     case 'chorizos': {

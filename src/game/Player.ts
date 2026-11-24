@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { castShadows } from '../fx/Look';
 import { config, laneX, SkinDef } from '../config';
 import { Box, makeBox } from './Collision';
 import { Birra, Pose } from '../models/Birra';
@@ -47,10 +48,11 @@ export class Player {
 
   constructor(skin?: SkinDef) {
     this.model = new Birra(skin);
-    // Sombra "blob": círculo oscuro en el piso
+    castShadows(this.model.root);
+    // Sombra de contacto suave debajo (la sombra real la hace el sol)
     this.shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.5, 20),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false }),
     );
     this.shadow.rotation.x = -Math.PI / 2;
     this.root.add(this.model.root);
@@ -78,6 +80,7 @@ export class Player {
   setSkin(skin: SkinDef): void {
     this.root.remove(this.model.root);
     this.model = new Birra(skin);
+    castShadows(this.model.root);
     this.root.add(this.model.root);
   }
 

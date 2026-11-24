@@ -201,3 +201,30 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
     - Los **logros** entran de a uno: hasta qué hora aguantó, a qué zona llegó, saltos, rodadas, techos de bondi, power-ups y misiones cumplidas en la partida (en dorado).
     - Los botones aparecen al final. Tocando en cualquier lado se ve todo de una.
   - Los textos están en `config.texts` (con singular y plural) y los tiempos en `config.results`.
+
+## Look más profesional: sombreado suave, sombras reales y posproceso
+
+- **Pedido:** que se vea más pro, con menos "formitas" y polígonos. Se mantiene el estilo cartoon de la spec, pero pulido como un juego mobile actual. No se pasó a realista: con modelos armados por código no queda bien y en celular pesaría mucho.
+- **Modelos (`kit.ts`):**
+  - Sombreado suave en vez de facetado.
+  - Cilindros y conos con 20 lados, y esferas y cúpulas más redondas.
+  - Copas de árboles y arbustos con `blob`: esferas deformadas con ruido, así parecen follaje y no pelotas.
+  - Peatones con piernas, brazos y torso de cápsulas en vez de cajas.
+- **Luz (`src/fx/Look.ts`, `config.graphics`):**
+  - **Tono:** tone mapping neutro de Khronos, que respeta los colores de marca.
+  - **Reflejos:** un "estudio" que les da brillo a la birra, los autos y los metales.
+  - **Sol con sombras reales** que sigue a la birra.
+    - El cuadro de sombras se corre hacia adelante y se ajusta a la grilla para que no titile.
+    - El sol viene alto y desde atrás: las sombras de los edificios cubren las veredas sin tapar toda la calle, y la sombra de la birra cae delante de ella.
+    - El relleno del cielo bajó para que las sombras se lean.
+    - Sigue habiendo una sombra de contacto suave debajo de la birra.
+- **Posproceso:**
+  - Brillo (bloom) solo en las luces fuertes (faroles, guirnaldas, carteles), más intenso de noche.
+  - Viñeta y un toque de contraste y saturación.
+  - Antialias MSAA.
+- **Oclusión ambiental (n8ao): solo en compu.**
+  - Oscurece rincones, bases de edificios y debajo de los árboles.
+  - Pesa ~120 kB comprimida y es cara para la GPU, así que se descarga aparte y solo si el dispositivo no es táctil. Con ella, el antialias pasa a SMAA.
+  - n8ao importa la librería "postprocessing" para una variante que no usamos. Se reemplaza por un stub (`src/fx/postprocessing-stub.ts`, alias en `vite.config.ts`).
+- **Celular:** sombras de 1024 en vez de 2048 y bloom a menor resolución.
+- **Calidad adaptativa:** si con la resolución al mínimo sigue lento, se apaga primero la oclusión y después el brillo.

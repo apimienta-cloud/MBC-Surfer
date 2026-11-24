@@ -9,7 +9,7 @@ export function buildFaro(): THREE.BufferGeometry {
   const rocks: [number, number, number][] = [
     [0, 0, 0], [3.5, -1, 2], [-3, 0.5, -2.5], [2.5, 0, -3.5], [-2.8, -0.5, 3], [4.5, -1.5, -1],
   ];
-  rocks.forEach(([x, y, z], i) => k.sphere(3 + (i % 3) * 0.8, i % 2 ? rock : '#7D786F', x, y, z, { sy: 0.55 }, 0));
+  rocks.forEach(([x, y, z], i) => k.sphere(3 + (i % 3) * 0.8, i % 2 ? rock : '#7D786F', x, y, z, { sy: 0.55 }, 2));
   // Casita del farero
   k.box(4, 3, 5, '#F2EFE8', -2.5, 1.2, 0);
   k.prism(5, 1.4, 4.2, '#A4553A', -2.5, 4.2, 0);

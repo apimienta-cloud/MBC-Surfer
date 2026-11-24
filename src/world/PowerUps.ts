@@ -24,13 +24,13 @@ function buildIcon(type: PowerUpType): THREE.BufferGeometry {
       k.boxC(0.05, 0.28, 0.04, '#1E3A5F', 0, 0.17, 0.07);
       k.boxC(0.2, 0.05, 0.04, '#1E3A5F', 0.09, 0.05, 0.07);
       k.cylC(0.15, 0.32, '#F2B134', 0.32, -0.28, 0.12, 10);
-      k.sphere(0.13, '#FFF8E7', 0.32, -0.1, 0.12, { sy: 0.6 }, 0);
+      k.sphere(0.13, '#FFF8E7', 0.32, -0.1, 0.12, { sy: 0.6 }, 2);
       break;
     case 'choppDoble':
       // Dos choppitos
       for (const x of [-0.22, 0.24]) {
         k.cylC(0.17, 0.5, '#F2B134', x, -0.05, 0, 10);
-        k.sphere(0.17, '#FFF8E7', x, 0.24, 0, { sy: 0.6 }, 0);
+        k.sphere(0.17, '#FFF8E7', x, 0.24, 0, { sy: 0.6 }, 2);
         k.add(new THREE.TorusGeometry(0.1, 0.03, 4, 8, Math.PI), '#F2B134', x + (x < 0 ? -0.17 : 0.17), -0.05, 0, { rz: x < 0 ? Math.PI / 2 : -Math.PI / 2 });
       }
       break;

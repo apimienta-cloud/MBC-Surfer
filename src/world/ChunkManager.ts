@@ -89,9 +89,13 @@ export class ChunkManager {
     for (let i = 0; i < count; i++) {
       const g = new THREE.Group();
       const roadMesh = new THREE.Mesh(road, this.roadMats.asphalt);
-      g.add(roadMesh, new THREE.Mesh(linesGeo, kitMaterial));
+      roadMesh.receiveShadow = true;
+      const lines = new THREE.Mesh(linesGeo, kitMaterial);
+      lines.castShadow = lines.receiveShadow = true;
+      g.add(roadMesh, lines);
       const sidewalks = [-1, 1].map((sx) => {
         const m = new THREE.Mesh(side, this.groundMats.concrete);
+        m.receiveShadow = true;
         m.position.x = sx * (ROAD_HALF + W.sidewalkWidth / 2);
         g.add(m);
         return m;
@@ -99,6 +103,7 @@ export class ChunkManager {
       const strips = [0, 1].map(() =>
         Array.from({ length: MAX_STRIPS }, () => {
           const m = new THREE.Mesh(strip, this.groundMats.concrete);
+          m.receiveShadow = true;
           m.visible = false;
           g.add(m);
           return m;
@@ -241,6 +246,7 @@ export class ChunkManager {
 
   _banner(slot: Slot, text: string, z: number, sign: boolean): void {
     const post = new THREE.Mesh(this.bannerGeo, kitMaterial);
+    post.castShadow = post.receiveShadow = true;
     post.position.z = z;
     const board = new THREE.Mesh(this.bannerPlane, this.bannerMat(text, sign));
     board.position.set(0, 6.4, z + 0.15);
@@ -297,6 +303,7 @@ class Builder implements ChunkCtx {
     const lm = getLandmark(id);
     const bb = lm.geo.boundingBox!;
     const mesh = new THREE.Mesh(lm.geo, kitMaterial);
+    mesh.castShadow = mesh.receiveShadow = true;
     const x = side < 0 ? -(EDGE + gap) - bb.max.x : EDGE + gap + bb.max.x;
     mesh.position.set(x, 0, z);
     mesh.rotation.y = this.face(side) + side * angle;
@@ -327,6 +334,7 @@ class Builder implements ChunkCtx {
         continue;
       }
       const mesh = new THREE.Mesh(v.geo, kitMaterial);
+      mesh.castShadow = mesh.receiveShadow = true;
       mesh.position.set(side * (EDGE + setback + v.depth / 2), 0, z - v.width / 2);
       mesh.rotation.y = this.face(side);
       this.slot.decor.add(mesh);

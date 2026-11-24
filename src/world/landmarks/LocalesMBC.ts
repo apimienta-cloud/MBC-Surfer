@@ -115,7 +115,7 @@ function stringLights(k: Kit, bulbs: Kit, a: THREE.Vector3, b: THREE.Vector3, sa
     const seg = new THREE.BoxGeometry(0.03, 0.03, len);
     seg.lookAt(p.clone().sub(prev));
     k.add(seg, '#1C1C1C', mid.x, mid.y, mid.z);
-    if (i < n) bulbs.sphere(0.09, '#ffffff', p.x, p.y - 0.12, p.z, undefined, 0);
+    if (i < n) bulbs.sphere(0.09, '#ffffff', p.x, p.y - 0.12, p.z, undefined, 1);
     prev = p;
   }
 }
@@ -173,36 +173,36 @@ export function person(k: Kit, x: number, z: number, o: { rotY?: number; sitting
   if (o.sitting) {
     for (const l of [-0.1, 0.1]) {
       const [tx, tz] = P(0.2, l);
-      k.boxC(0.45, 0.14, 0.14, pants, tx, y0 + 0.52, tz, ry);
+      k.capsule(0.07, 0.32, pants, tx, y0 + 0.52, tz, { rz: Math.PI / 2, ry: a });
       const [sx, sz] = P(0.4, l);
-      k.boxC(0.13, 0.45, 0.13, pants, sx, y0 + 0.25, sz, ry);
+      k.capsule(0.065, 0.32, pants, sx, y0 + 0.25, sz, ry);
     }
     const [bx, bz] = P(-0.02, 0);
-    k.boxC(0.24, 0.58, 0.4, shirt, bx, y0 + 0.88, bz, ry);
-    k.sphere(0.13, skin, bx, y0 + 1.3, bz, undefined, 0);
+    k.capsule(0.2, 0.2, shirt, bx, y0 + 0.9, bz, { sx: 0.62, ry: a });
+    k.sphere(0.13, skin, bx, y0 + 1.3, bz, undefined, 2);
     const [hx, hz] = P(-0.03, 0);
-    k.sphere(0.135, pick(HAIR), hx, y0 + 1.35, hz, { sy: 0.7 }, 0);
+    k.sphere(0.135, pick(HAIR), hx, y0 + 1.35, hz, { sy: 0.7 }, 2);
   } else {
     for (const l of [-0.1, 0.1]) {
       const [lx, lz] = P(0, l);
-      k.boxC(0.14, 0.86, 0.15, pants, lx, y0 + 0.43, lz, ry);
+      k.capsule(0.072, 0.72, pants, lx, y0 + 0.43, lz, ry);
     }
-    k.boxC(0.24, 0.62, 0.42, shirt, x, y0 + 1.17, z, ry);
-    k.sphere(0.13, skin, x, y0 + 1.63, z, undefined, 0);
+    k.capsule(0.2, 0.3, shirt, x, y0 + 1.2, z, { sx: 0.62, ry: a });
+    k.sphere(0.13, skin, x, y0 + 1.66, z);
     const [hx, hz] = P(-0.03, 0);
-    k.sphere(0.135, pick(HAIR), hx, y0 + 1.68, hz, { sy: 0.7 }, 0);
+    k.sphere(0.135, pick(HAIR), hx, y0 + 1.71, hz, { sy: 0.7 });
   }
   // Brazo con el vaso
   const base = o.sitting ? 0.88 : 1.17;
   const [ax, az] = P(0.12, 0.25);
   if (o.armUp) {
-    k.boxC(0.1, 0.5, 0.1, shirt, ax, y0 + base + 0.4, az, ry);
-    k.cyl(0.05, 0.045, 0.16, '#F2B134', ax, y0 + base + 0.66, az, 6);
+    k.capsule(0.055, 0.4, shirt, ax, y0 + base + 0.4, az, ry);
+    k.cyl(0.05, 0.045, 0.16, '#F2B134', ax, y0 + base + 0.66, az, 12);
   } else {
     const [fx, fz] = P(0.2, 0.25);
-    k.boxC(0.36, 0.1, 0.1, shirt, fx, y0 + base, fz, ry);
+    k.capsule(0.055, 0.3, shirt, fx, y0 + base, fz, { rz: Math.PI / 2, ry: a });
     const [cx, cz] = P(0.38, 0.25);
-    k.cyl(0.05, 0.045, 0.16, '#F2B134', cx, y0 + base - 0.02, cz, 6);
+    k.cyl(0.05, 0.045, 0.16, '#F2B134', cx, y0 + base - 0.02, cz, 12);
   }
 }
 
@@ -248,7 +248,7 @@ function van(k: Kit, x: number, z: number): void {
 /** Árbol de hoja colorada (los del patio de la casa). */
 function redTree(k: Kit, x: number, z: number): void {
   k.cyl(0.14, 0.2, 2.2, '#5A3B24', x, 0, z, 6);
-  for (const [dx, dy, dz, r] of [[0, 3.2, 0, 1.4], [0.6, 3.8, 0.4, 1.0], [-0.6, 3.6, -0.4, 1.0]]) k.sphere(r, '#7B2E3A', x + dx, dy, z + dz, undefined, 0);
+  for (const [dx, dy, dz, r] of [[0, 3.2, 0, 1.4], [0.6, 3.8, 0.4, 1.0], [-0.6, 3.6, -0.4, 1.0]]) k.blob(r, '#7B2E3A', x + dx, dy, z + dz, undefined, 0.18, dx * 3);
 }
 
 /** Maceta hecha con tacho negro (frente del galpón). */
@@ -300,7 +300,7 @@ export function buildCasaMBC(): LocalModel {
   for (let i = 0; i < 9; i++) {
     const z = -6 + i * 0.36;
     k.box(0.15, 0.8 + (i % 3) * 0.4, 0.22, i % 2 ? '#3E6B35' : '#4F8A3C', fx + 0.95, 4.2 - (i % 3) * 0.4, z);
-    k.sphere(0.28, '#4F8A3C', fx + 0.75, 5.35, z, undefined, 0);
+    k.sphere(0.28, '#4F8A3C', fx + 0.75, 5.35, z, undefined, 2);
   }
   // Pórtico de entrada con columnas y techito de tejas
   const pz = 5.2;
@@ -404,7 +404,7 @@ export function buildPatioMBC(): LocalModel {
   for (let z = -W / 2 + 1; z < W / 2; z += 1.2) k.box(D, 0.07, 0.08, '#6E8F55', -D / 2 + 0.5, 0, z);
   // Muro de fondo con plantas
   k.box(0.5, 2.6, W, '#EDE8DD', -D + 0.5, 0, 0);
-  for (let z = -W / 2 + 0.6; z < W / 2; z += 1.4) k.sphere(0.6, '#4F8A3C', -D + 1, 2.7, z, { sy: 0.8 }, 0);
+  for (let z = -W / 2 + 0.6; z < W / 2; z += 1.4) k.blob(0.6, '#4F8A3C', -D + 1, 2.7, z, { sy: 0.8 }, 0.2, z);
   for (const [x, z] of [[-2.2, -5.2], [-2.2, -1.2], [-2.2, 2.8], [-6, -3.2], [-6, 0.8]] as const) {
     picnicTable(k, x, z);
     if (rnd() < 0.85) person(k, x - 0.78, z - 0.4 + rnd() * 0.8, { sitting: true, rotY: 0 });
@@ -658,7 +658,7 @@ export function buildEscenarioMBC(): LocalModel {
   k.cyl(0.03, 0.03, 1.5, '#555555', -4.8, 1.2, -1.6, 4);
   for (const z of [-2.5, 0.5, 3.2]) {
     k.cyl(0.03, 0.03, 1.6, '#555555', -0.9, 1.2, z, 4);
-    k.sphere(0.07, '#222222', -0.9, 2.85, z, undefined, 0);
+    k.sphere(0.07, '#222222', -0.9, 2.85, z, undefined, 1);
   }
   // Tachos de luz en la parrilla
   for (let z = -5.5; z <= 5.5; z += 2.2) lights.cyl(0.2, 0.25, 0.4, '#ffffff', -0.5, 7.0, z, 8);

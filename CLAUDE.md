@@ -169,11 +169,11 @@ Fuentes: una display redondeada y divertida para títulos (Google Fonts, por eje
 
 ## 11. Look & feel
 
-- Low-poly colorido y cartoon, `MeshToonMaterial` o `MeshStandardMaterial` con colores planos.
+- Cartoon colorido pero pulido (no facetado): `MeshStandardMaterial` con sombreado suave, formas redondeadas, sombras reales del sol, reflejos suaves, brillo en las luces y viñeta (`src/fx/Look.ts`, valores en `config.graphics`).
 - **Paleta:** ámbar/dorado birra (`#C8862B`, `#F2B134`), espuma (`#FFF8E7`), celeste uruguayo (`#7FC4E8`), azul profundo (`#1E3A5F`), rojo Lunes (`#E63946`).
 - Si existen colores de marca en `config.brand.colors`, tienen prioridad.
 - Cámara detrás y arriba de la birra, con FOV que aumenta un poco a mayor velocidad y un leve shake al tropezar.
-- Sombras baratas: sombras "blob" (círculo oscuro debajo) o una sola luz direccional con shadow map chico.
+- Sombras: una sola luz direccional con shadow map que sigue a la birra (más chico en celular), más una sombra de contacto suave debajo. Oclusión ambiental solo en desktop.
 
 ---
 

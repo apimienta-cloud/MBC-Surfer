@@ -49,7 +49,7 @@ function guirnalda(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry }
     seg.lookAt(p.clone().sub(prev));
     const mid = prev.clone().add(p).multiplyScalar(0.5);
     base.add(seg, '#1C1C1C', mid.x, mid.y, mid.z);
-    if (i < n) bulbs.sphere(0.1, '#ffffff', p.x, p.y - 0.14, p.z, undefined, 0);
+    if (i < n) bulbs.sphere(0.1, '#ffffff', p.x, p.y - 0.14, p.z, undefined, 1);
     prev = p;
   }
   return { base: base.build(), tint: bulbs.build() };
@@ -58,13 +58,22 @@ function guirnalda(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry }
 /** Peatón low-poly sin cara con un vaso de birra; la remera toma el color de la instancia. */
 function peaton(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
   const base = new Kit()
-    .boxC(0.14, 0.86, 0.15, '#2B3A55', 0, 0.43, -0.1)
-    .boxC(0.14, 0.86, 0.15, '#2B3A55', 0, 0.43, 0.1)
-    .sphere(0.13, '#C99A78', 0, 1.63, 0, undefined, 0)
-    .sphere(0.135, '#2A1E14', -0.03, 1.68, 0, { sy: 0.7 }, 0)
-    .cyl(0.05, 0.045, 0.16, '#F2B134', 0.38, 1.1, 0.25, 6)
+    .capsule(0.072, 0.72, '#2B3A55', 0, 0.43, -0.1)
+    .capsule(0.072, 0.72, '#2B3A55', 0, 0.43, 0.1)
+    .capsule(0.07, 0.02, '#3A2E26', 0.05, 0.06, -0.1, { rz: Math.PI / 2 })
+    .capsule(0.07, 0.02, '#3A2E26', 0.05, 0.06, 0.1, { rz: Math.PI / 2 })
+    .sphere(0.13, '#C99A78', 0, 1.66, 0)
+    .sphere(0.135, '#2A1E14', -0.03, 1.71, 0, { sy: 0.7 })
+    .sphere(0.05, '#C99A78', 0.4, 1.15, 0.25)
+    .sphere(0.05, '#C99A78', 0.02, 0.86, -0.27)
+    .cyl(0.05, 0.042, 0.16, '#F2B134', 0.42, 1.1, 0.25, 12)
     .build();
-  const tint = new Kit().boxC(0.24, 0.62, 0.42, '#ffffff', 0, 1.17, 0).boxC(0.36, 0.1, 0.1, '#ffffff', 0.2, 1.17, 0.25).build();
+  // Remera: torso redondeado, un brazo con el vaso y el otro colgando
+  const tint = new Kit()
+    .capsule(0.2, 0.3, '#ffffff', 0, 1.2, 0, { sx: 0.62 })
+    .capsule(0.055, 0.3, '#ffffff', 0.2, 1.17, 0.25, { rz: Math.PI / 2 })
+    .capsule(0.055, 0.34, '#ffffff', 0.01, 1.1, -0.26, { rx: 0.08 })
+    .build();
   return { base, tint };
 }
 
@@ -97,10 +106,21 @@ function defs(): Record<PropType, PropDef> {
     .boxC(1.2, 0.1, 0.1, '#2F3B34', 0.55, 4.3, 0)
     .cone(0.3, 0.35, '#2F3B34', 1.1, 4.05, 0, 6)
     .build();
-  const bulb = new Kit().sphere(0.2, W, 1.1, 3.95, 0, undefined, 0).build();
+  const bulb = new Kit().sphere(0.2, W, 1.1, 3.95, 0, undefined, 2).build();
 
-  const arbol = new Kit().cyl(0.18, 0.28, 2.6, '#6B4A2E', 0, 0, 0, 6).build();
-  const copa = new Kit().sphere(1.9, W, 0, 3.8, 0, undefined, 0).sphere(1.3, W, 0.8, 4.6, 0.6, undefined, 0).sphere(1.2, W, -0.7, 4.4, -0.6, undefined, 0).build();
+  const arbol = new Kit()
+    .cyl(0.16, 0.28, 3.0, '#6B4A2E', 0, 0, 0, 10)
+    .cyl(0.06, 0.1, 1.4, '#6B4A2E', 0.1, 2.6, 0.2, 8, { rz: -0.6, rx: 0.3 })
+    .cyl(0.06, 0.1, 1.3, '#6B4A2E', -0.1, 2.7, -0.2, 8, { rz: 0.6, rx: -0.3 })
+    .build();
+  // Copa: varias masas irregulares superpuestas, como follaje
+  const copa = new Kit()
+    .blob(1.75, W, 0, 3.9, 0, { sy: 0.85 }, 0.16, 1)
+    .blob(1.25, W, 0.95, 4.5, 0.55, undefined, 0.18, 2)
+    .blob(1.15, W, -0.85, 4.35, -0.6, undefined, 0.18, 3)
+    .blob(1.0, W, 0.1, 5.1, -0.3, undefined, 0.2, 4)
+    .blob(0.95, W, -0.3, 4.0, 1.0, undefined, 0.2, 5)
+    .build();
 
   const palmera = new Kit()
     .cyl(0.2, 0.3, 3, '#8A6A45', 0, 0, 0, 6)
@@ -120,7 +140,7 @@ function defs(): Record<PropType, PropDef> {
     .boxC(0.45, 0.6, 0.4, '#3E5C7A', -0.05, 0.3, 0)
     .boxC(0.5, 0.15, 0.4, '#4A4A4A', -0.3, 0.05, 0)
     .boxC(0.15, 0.5, 0.35, '#4A4A4A', -0.55, -0.2, 0)
-    .sphere(0.17, '#D9A77E', -0.05, 0.78, 0, undefined, 0)
+    .sphere(0.17, '#D9A77E', -0.05, 0.78, 0, undefined, 2)
     .cylC(0.2, 0.08, '#C8402F', -0.05, 0.92, 0, 8)
     .cylC(0.025, 4, '#2A2A2A', -1.6, 1.4, 0, 4, { rz: -1.0 })
     .build();
@@ -133,7 +153,7 @@ function defs(): Record<PropType, PropDef> {
     .box(0.08, 2.5, 0.08, '#555555', -1.05, 0, -0.55);
   // Mercadería: frutas, plantas y pilas de libros
   const goods = ['#E07A2E', '#D23B2B', '#7CB342', '#F2C230', '#6D4C41', '#3F6E9E'];
-  for (let i = 0; i < 6; i++) puesto.sphere(0.18, goods[i], -0.7 + (i % 3) * 0.6, 1.05, -0.3 + Math.floor(i / 3) * 0.6, undefined, 0);
+  for (let i = 0; i < 6; i++) puesto.sphere(0.18, goods[i], -0.7 + (i % 3) * 0.6, 1.05, -0.3 + Math.floor(i / 3) * 0.6, undefined, 2);
   puesto.box(0.5, 0.35, 0.35, '#3F6E9E', 0.7, 0.9, 0.3).box(0.45, 0.3, 0.3, '#A23B3B', 0.7, 1.25, 0.3);
   const toldo = new Kit().boxC(2.6, 0.08, 1.7, W, 0, 2.45, 0, { rz: 0.12 }).boxC(0.05, 0.35, 1.7, W, 1.3, 2.15, 0).build();
 
@@ -208,7 +228,7 @@ export class PropInstancer {
 
   constructor(private slots: number) {
     const d = defs();
-    const tintMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, flatShading: true });
+    const tintMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
     this.entries = {} as Record<PropType, Entry>;
     for (const type of Object.keys(d) as PropType[]) {
       const cap = PER_SLOT[type] * slots;
@@ -246,6 +266,9 @@ export class PropInstancer {
       }
       for (const m of tint ? [base, tint] : [base]) {
         m.frustumCulled = false;
+        // Las guirnaldas son finitas: no vale la pena que hagan sombra
+        m.castShadow = type !== 'guirnalda';
+        m.receiveShadow = true;
         for (let i = 0; i < cap; i++) m.setMatrixAt(i, ZERO);
         this.group.add(m);
       }

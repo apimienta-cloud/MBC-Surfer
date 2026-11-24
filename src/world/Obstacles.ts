@@ -96,12 +96,14 @@ export class Obstacles {
     let o = this.pool.get(key)?.pop();
     if (!o) {
       const mesh = new THREE.Mesh(this.geoFor(variant, livery), kitMaterial);
+      mesh.castShadow = mesh.receiveShadow = true;
       const extras = obstacleExtras(variant, livery);
       if (extras) mesh.add(extras);
       this.group.add(mesh);
       let rampMesh: THREE.Mesh | null = null;
       if (kind === 'bondi') {
         rampMesh = new THREE.Mesh(this.rampGeo, kitMaterial);
+        rampMesh.castShadow = rampMesh.receiveShadow = true;
         this.group.add(rampMesh);
       }
       o = { kind, key, lane: 0, box: makeBox(), prevBox: makeBox(), ramp: false, moving: false, hit: false, bob: variant === 'gaviotas', mesh, rampMesh };
