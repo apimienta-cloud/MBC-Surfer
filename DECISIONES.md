@@ -228,3 +228,17 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
   - n8ao importa la librería "postprocessing" para una variante que no usamos. Se reemplaza por un stub (`src/fx/postprocessing-stub.ts`, alias en `vite.config.ts`).
 - **Celular:** sombras de 1024 en vez de 2048 y bloom a menor resolución.
 - **Calidad adaptativa:** si con la resolución al mínimo sigue lento, se apaga primero la oclusión y después el brillo.
+
+## Pinta Vernos: la juntada con la amiga
+
+- **Nombre nuevo:** "Pinta Vernos" (antes "Escapale al Lunes"). Cambian el título de la página, el logo del título (regenerado con la fuente Eatbreak de la marca), el texto para compartir y el nombre del paquete.
+- **La historia:** una cervecita quiere juntarse con su amiga, otra cervecita que corre adelante.
+  - La amiga va adelante y es infinita: la alcanzás, brindan, y se vuelve a adelantar un poco más lejos. Así sigue siendo un endless runner y cada juntada es una meta corta.
+  - El Lunes sigue de villano por ahora (pedido del cliente: "de momento que siga el lunes").
+  - Cómo te acercás: el tiempo corriendo sin tropezar, las fichitas (le dan un uso más a juntarlas) y un tropiezo te aleja. Todos los números en `config.friend`.
+  - La amiga esquiva sola con las mismas reglas de salto y rodada que la birra, para que nunca atraviese un obstáculo.
+  - En el brindis se pone al costado (del lado del centro de la calle) y las dos se giran para mirarse: si quedaba delante, la cámara la tapaba con la birra.
+  - La skin de la amiga es distinta a la tuya, así se distinguen.
+- **Escenario más detallado:** las ventanas ahora tienen vidrio brillante (un atributo `gloss` por vértice en el kit, que baja la rugosidad y sube el metal), marco, dintel, alféizar y parteluz. Los edificios coloniales sumaron zócalo, molduras, puerta de madera y balcones con baranda; los de departamentos, barandas de vidrio y hall vidriado.
+- **Birra mejorada:** envase torneado de una pieza en vez de cilindros apilados, barniz brillante, gotitas de condensación en el vidrio, ojos con brillito que parpadean, pulgar en el guante y zapatillas con suela. Todas las piezas con más segmentos para que no se vean facetas.
+- **Modelos 3D "de verdad":** todo sigue hecho por código. Modelos esculpidos (Blender, `.glb`) necesitan un artista 3D o un pack con licencia libre. Los constructores (`Birra`, `Lunes`, edificios) se pueden cambiar por un modelo cargado sin tocar el resto del juego.

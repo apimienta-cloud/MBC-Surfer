@@ -1,7 +1,8 @@
-# Escapale al Lunes — Spec del juego
+# Pinta Vernos — Spec del juego
 
 > Endless runner 3D de 3 carriles (mecánica estilo Subway Surfers, pero con todo el contenido original).
-> Una birra corre por lugares icónicos de Montevideo juntando fichitas de MBC mientras la persigue el Lunes: una hoja de calendario gigante, enojada, que dice "LUNES".
+> Una cervecita corre por lugares icónicos de Montevideo para juntarse con su amiga, otra cervecita que va adelante. La persigue el Lunes: una hoja de calendario gigante, enojada, que dice "LUNES".
+> (Antes se llamó "Escapale al Lunes".)
 
 Este archivo es la fuente de verdad del proyecto. Si algo no está definido acá, tomá la decisión más simple que respete el concepto y dejala anotada en `DECISIONES.md`.
 
@@ -11,7 +12,8 @@ Este archivo es la fuente de verdad del proyecto. Si algo no está definido acá
 
 - **Protagonista:** una birra (porrón ámbar con espuma, tapita, ojos cartoon, bracitos y patitas).
 - **Perseguidor:** el Lunes — un bloque de calendario de pared con anillas arriba, la hoja dice **LUNES** en rojo con el número del día, cejas enojadas, boca gritona, bracitos y piernas.
-- **Objetivo:** correr lo más lejos posible por Montevideo, juntar **fichitas MBC** y que no te agarre el lunes.
+- **La amiga:** otra cervecita (por defecto la lata Honey) que corre adelante por la misma calle y esquiva sola los obstáculos.
+- **Objetivo:** alcanzar a tu amiga para brindar (**¡Pinta vernos!**), correr lo más lejos posible por Montevideo, juntar **fichitas MBC** y que no te agarre el lunes.
 - **Tono:** humor rioplatense, cálido, nada agresivo. Todos los textos en español de Uruguay con voseo ("Jugá", "Te agarró el lunes", "¿Revancha?").
 
 ---
@@ -45,10 +47,10 @@ Este archivo es la fuente de verdad del proyecto. Si algo no está definido acá
 ## 4. Personaje: la Birra
 
 Construcción low-poly:
-- Cuerpo: cilindro ámbar (`#C8862B`), material con poca rugosidad para que brille; cuello más angosto; tapita dorada con bordecito dentado.
+- Cuerpo: envase de una sola pieza torneado (`LatheGeometry`): base redondeada, hombro en curva, cuello y pico; latas con bordes rebatidos. Material con barniz brillante (clearcoat) y, en vidrio, gotitas de condensación (mapa de normales generado). Tapita dorada con 21 dientes.
 - Etiqueta: un plano curvo alrededor del cuerpo. Si existe `public/assets/brand/mbc-logo.png`, se usa como textura; si no, etiqueta de color liso (no inventar logos).
 - Espuma: esferitas blancas arriba que se mueven con el movimiento; al saltar salen partículas de espuma.
-- Cara: ojos grandes cartoon, cejas expresivas, boca.
+- Cara: ojos grandes cartoon con brillito, que parpadean cada tanto; cejas expresivas, boca.
 - Brazos y piernas: cápsulas finitas.
 
 Animaciones procedurales (sin rig, por código):
@@ -59,6 +61,18 @@ Animaciones procedurales (sin rig, por código):
 - **Atrapada:** cara de pánico, el Lunes la tapa.
 
 Skins desbloqueables con fichitas (ver sección 9): porrón, lata, chopp, botella de litro. Los nombres de variedades se leen de `config.ts` para que la marca los defina.
+
+---
+
+## 4b. La amiga y la juntada (`src/game/Friend.ts`, `config.friend`)
+
+- Arranca con ~45 m de ventaja. La distancia se achica sola con el tiempo; cada fichita te acerca un poco más y cada tropiezo te aleja.
+- En el HUD, debajo del reloj, una pastilla 🍻 muestra a cuántos metros está y una barrita de cercanía.
+- Esquiva sola: si tiene una pared adelante (valla alta, bondi, taxi) se cambia de carril; salta las bajas y rueda bajo las altas.
+- **La juntada:** al alcanzarla se pone al lado de la birra, se miran y brindan ("¡Pinta vernos! 🍻", espuma y destellos). Suma un bonus que crece con cada juntada.
+- Después se vuelve a adelantar, cada vez un poco más lejos (hasta un máximo). Es infinito: el juego sigue siendo un endless runner.
+- La amiga usa una skin distinta a la tuya (Honey, o Blonde si elegiste Honey).
+- En la tarjeta final aparece como logro: "N juntadas con tu amiga" o "Te quedaste a X m de tu amiga".
 
 ---
 
@@ -157,10 +171,10 @@ Cinco tipos de comportamiento:
 
 1. **Age gate** (activable con `config.brand.ageGate`): "¿Sos mayor de 18?" Sí / No. Si dice que no, mensaje amable y no se muestra el juego.
 2. **Cinemática de entrada** (salteable): la birra pinta en una pared el grafiti con el logo de MBC y el claim **PINTA VERNOS**, que queda de fondo en el menú.
-   **Menú principal:** título "Escapale al Lunes", birra animada corriendo en el lugar, botón **Jugar**, récord, fichitas, Skins, mute.
+   **Menú principal:** título "Pinta Vernos", birra animada corriendo en el lugar, botón **Jugar**, récord, fichitas, Skins, mute.
 3. **HUD:** metros, fichitas, multiplicador, power-up activo con barra de duración, botón pausa. Grande y legible en celular.
 4. **Pausa:** Seguir / Reiniciar / Menú.
-5. **Game over (cinemática final):** la cámara se acerca a la birra, que festeja o saluda, y la tarjeta cuenta el puntaje y muestra los logros de la partida. "Te agarró el lunes", metros, fichitas de la partida, récord (con festejo si es nuevo), botones **Revancha** y **Compartir** (Web Share API con el texto "Le escapé al lunes X metros por Montevideo 🍺", con fallback a copiar al portapapeles).
+5. **Game over (cinemática final):** la cámara se acerca a la birra, que festeja o saluda, y la tarjeta cuenta el puntaje y muestra los logros de la partida. "Te agarró el lunes", metros, fichitas de la partida, récord (con festejo si es nuevo), botones **Revancha** y **Compartir** (Web Share API con el texto "Corrí X metros por Montevideo para juntarme con mi amiga 🍻 #PintaVernos", con fallback a copiar al portapapeles).
 6. **Leyenda legal** al pie del menú, configurable (`config.brand.legalText`, por defecto "Tomá con moderación. Prohibida su venta a menores de 18 años.").
 
 Fuentes: una display redondeada y divertida para títulos (Google Fonts, por ejemplo Baloo 2 o Fredoka) y una sans legible para el HUD.

@@ -146,6 +146,24 @@ export const config = {
     sheetParticlesPerSecond: 7,
   },
 
+  // La amiga: otra cervecita que corre adelante. Corriendo sin tropezar y juntando fichitas te acercás;
+  // cuando la alcanzás brindan (¡juntada!) y ella se vuelve a adelantar, cada vez un poco más.
+  friend: {
+    skin: 'honey', // si la birra usa esa skin, la amiga usa `altSkin`
+    altSkin: 'blonde',
+    startGap: 45, // metros adelante al arrancar
+    gapGrow: 15, // cada juntada se adelanta esto más
+    maxGap: 120,
+    closeRate: 0.75, // metros por segundo que te acercás corriendo
+    coinPull: 0.35, // metros que te acerca cada fichita
+    stumbleSlip: 10, // metros que se aleja si tropezás
+    meetGap: 2.4, // a esta distancia se encuentran
+    bonus: 500, // puntos por juntada (× número de juntada)
+    cheerTime: 1.4, // festejo del brindis
+    dashTime: 2.2, // lo que tarda en volver a adelantarse
+    laneSpeed: 9, // m/s al cambiar de carril
+  },
+
   birra: {
     legLength: 0.35,
     limbColor: '#3A2A1A',
@@ -443,7 +461,7 @@ export const config = {
   },
 
   share: {
-    text: 'Le escapé al lunes {m} metros por Montevideo 🍺',
+    text: 'Corrí {m} metros por Montevideo para juntarme con mi amiga 🍻 #PintaVernos',
   },
 
   // Ranking online: la gente se anota con su usuario de Instagram y sube su mejor puntaje.
@@ -468,7 +486,11 @@ export const config = {
   },
 
   texts: {
-    title: 'Escapale al Lunes',
+    title: 'Pinta Vernos',
+    friend: 'Tu amiga',
+    friendMeet: '¡Pinta vernos! 🍻',
+    friendMeetBonus: 'Juntada {n} · +{p} puntos',
+    tagline: 'Corré por Montevideo hasta tu amiga, que no te agarre el lunes',
     play: 'Jugá',
     pause: 'Pausa',
     resume: 'Seguir',
@@ -485,6 +507,8 @@ export const config = {
     achRolls: ['{n} rodada', '{n} rodadas'] as [string, string],
     achRoofs: ['{n} techo de bondi', '{n} techos de bondi'] as [string, string],
     achPowerups: ['{n} power-up', '{n} power-ups'] as [string, string],
+    achMeets: ['{n} juntada con tu amiga', '{n} juntadas con tu amiga'] as [string, string],
+    achFriendGap: 'Te quedaste a {m} m de tu amiga',
     achMission: 'Misión: {m}',
     tapToSkip: 'Tocá para ver todo',
     rematch: '¿Revancha?',
@@ -546,6 +570,8 @@ export const config = {
       '¿Me mandás eso hoy?',
       'Se terminó el finde, campeón',
       'Ya puse la alarma',
+      '¿Juntada? Mañana se labura',
+      'Dejá la birra para el viernes',
     ],
   },
 };

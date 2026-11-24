@@ -290,10 +290,8 @@ export function buildCasaMBC(): LocalModel {
   for (let z = -8.6; z <= 8.6; z += 0.9) k.box(0.5, 0.35, 0.3, trim, fx + 0.3, 9.0, z);
   k.box(11.4, 0.9, 18.4, white, -6.5, 9.9, 0);
   // Ventanas: marco claro y vidrio oscuro; abajo con rejas
-  k.windows('x', fx - 0.02, -8, 1.5, 5.3, 8.9, 4, 1, trim, 1.6, 3.0);
-  k.windows('x', fx, -8, 1.5, 5.3, 8.9, 4, 1, dark, 1.15, 2.6);
-  k.windows('x', fx - 0.02, -8, 1.5, 0.8, 4.2, 3, 1, trim, 1.6, 2.8);
-  k.windows('x', fx, -8, 1.5, 0.8, 4.2, 3, 1, '#1F2620', 1.15, 2.4);
+  k.windows('x', fx, -8, 1.5, 5.3, 8.9, 4, 1, dark, 1.15, 2.6, trim);
+  k.windows('x', fx, -8, 1.5, 0.8, 4.2, 3, 1, '#1F2620', 1.15, 2.4, trim);
   for (let z = -7.4; z < 1.5; z += 0.25) k.box(0.05, 2.4, 0.04, '#222222', fx + 0.08, 1.0, z);
   // Balcón con plantas colgando
   k.box(1.1, 0.2, 3.4, trim, fx + 0.5, 5.0, -4.6);

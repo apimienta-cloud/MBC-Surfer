@@ -13,6 +13,8 @@ export interface PartOpts {
   sx?: number;
   sy?: number;
   sz?: number;
+  /** 0 = mate, 1 = vidrio que refleja (ventanas, vidrieras). */
+  gloss?: number;
 }
 
 const tmpColor = new THREE.Color();
@@ -43,6 +45,7 @@ export class Kit {
       c[i * 3 + 2] = tmpColor.b;
     }
     g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    g.setAttribute('gloss', new THREE.BufferAttribute(new Float32Array(n).fill(o.gloss ?? 0), 1));
     this.parts.push(g);
     geo.dispose();
     return this;
@@ -131,6 +134,7 @@ export class Kit {
     color: string,
     ww = 0.9,
     wh = 1.4,
+    frame?: string,
   ): this {
     const span = to - from;
     const fh = (y1 - y0) / rows;
@@ -138,11 +142,30 @@ export class Kit {
       for (let c = 0; c < cols; c++) {
         const t = from + (span * (c + 0.5)) / cols;
         const y = y0 + fh * r + (fh - wh) / 2;
-        // Planos (2 triángulos) en vez de cajas: de las ventanas solo se ve el frente
-        if (axis === 'x') this.add(new THREE.PlaneGeometry(ww, wh), color, face + 0.03, y + wh / 2, t, { ry: Math.PI / 2 });
-        else this.add(new THREE.PlaneGeometry(ww, wh), color, t, y + wh / 2, face + 0.03);
+        this.pane(axis, face, t, y, ww, wh, color, frame);
       }
     }
+    return this;
+  }
+
+  /**
+   * Una ventana: vidrio que refleja y, si hay color de marco, marco y alféizar salientes.
+   * `t` es la posición a lo largo de la cara e `y` la base.
+   */
+  pane(axis: 'x' | 'z', face: number, t: number, y: number, ww: number, wh: number, glass: string, frame?: string): this {
+    // Planos (2 triángulos) para el vidrio: de las ventanas solo se ve el frente
+    const at = (off: number, yy: number, tt = t): [number, number, number] => (axis === 'x' ? [face + off, yy, tt] : [tt, yy, face + off]);
+    const rot = axis === 'x' ? Math.PI / 2 : 0;
+    this.add(new THREE.PlaneGeometry(ww, wh), glass, ...at(0.03, y + wh / 2), { ry: rot, gloss: 1 });
+    if (!frame) return this;
+    const fw = 0.09;
+    const dep = 0.1;
+    // Marco: dos parantes, dintel y alféizar más ancho
+    for (const s of [-1, 1]) this.add(new THREE.BoxGeometry(fw, wh + fw, dep), frame, ...at(dep / 2, y + wh / 2, t + s * (ww / 2 + fw / 2)), { ry: rot });
+    this.add(new THREE.BoxGeometry(ww + fw * 2, fw, dep), frame, ...at(dep / 2, y + wh + fw / 2), { ry: rot });
+    this.add(new THREE.BoxGeometry(ww + fw * 3, 0.08, dep * 2.2), frame, ...at(dep * 1.1, y - 0.04), { ry: rot });
+    // Travesaño en las ventanas altas
+    if (wh > 1.3) this.add(new THREE.BoxGeometry(0.05, wh, 0.04), frame, ...at(0.05, y + wh / 2), { ry: rot });
     return this;
   }
 
@@ -157,8 +180,22 @@ export class Kit {
   }
 }
 
-/** Material compartido para todo lo armado con el Kit (colores por vértice, sombreado suave). */
+/**
+ * Material compartido para todo lo armado con el Kit (colores por vértice, sombreado suave).
+ * El atributo `gloss` por vértice vuelve brillantes y reflejantes las partes de vidrio, sin otro material.
+ */
 export const kitMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78 });
+kitMaterial.onBeforeCompile = (shader) => {
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nattribute float gloss;\nvarying float vGloss;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGloss = gloss;');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying float vGloss;')
+    .replace(
+      '#include <metalnessmap_fragment>',
+      '#include <metalnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.06, vGloss);\nmetalnessFactor = mix(metalnessFactor, 0.55, vGloss);',
+    );
+};
 
 // ---------- Cosas que se prenden de noche (guirnaldas, carteles, ventanales) ----------
 

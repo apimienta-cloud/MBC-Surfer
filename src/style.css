@@ -532,3 +532,50 @@ h2 { font: 800 34px/1.1 var(--display); }
   .res-actions .menu-row { flex-wrap: nowrap; gap: 6px; }
   .res-actions .menu-row .btn.small { font-size: 14px; padding: 9px 11px; white-space: nowrap; }
 }
+
+/* Distancia a la amiga, abajo del reloj */
+.hud-friend {
+  position: absolute;
+  left: 50%;
+  top: calc(52px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 14px 9px;
+  border-radius: 999px;
+  background: rgba(30, 58, 95, 0.75);
+  font: 800 14px/1.2 var(--sans);
+  white-space: nowrap;
+  transition: background 0.3s;
+}
+.hud-friend .friend-label { opacity: 0.85; font-weight: 600; }
+.hud-friend b { font-size: 16px; }
+.hud-friend i {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+.hud-friend s {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transform-origin: left;
+  transition: transform 0.25s;
+}
+.hud-friend.meet { background: rgba(200, 134, 43, 0.92); animation: friend-pop 0.5s ease-out; }
+@keyframes friend-pop { 50% { transform: translateX(-50%) scale(1.15); } }
+@media (max-width: 560px) {
+  .hud-friend {
+    left: 16px;
+    transform: none;
+    top: calc(128px + env(safe-area-inset-top));
+    font-size: 13px;
+  }
+  .hud-friend.meet { animation: none; }
+}

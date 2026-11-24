@@ -64,6 +64,7 @@ export class UI {
   private powersEl: HTMLElement;
   private feriadoBtn: HTMLButtonElement;
   private hudCache = { score: -1, meters: -1, coins: -1, mult: -1 };
+  private friendCache = -1;
   /** Cinemática final en curso: cada una tiene su número para cortar la anterior. */
   private resultsRun = 0;
   private finishResults: (() => void) | null = null;
@@ -83,6 +84,7 @@ export class UI {
         </div>
       </div>
       <div class="hud-clock" data-id="clock"></div>
+      <div class="hud-friend" data-id="friend"><span class="friend-icon">🍻</span><span class="friend-label">${T.friend}</span><b data-id="friendGap">0</b><small>${T.meters}</small><i><s data-id="friendBar"></s></i></div>
       <div class="hud-right">
         <button class="hud-pause" data-act="pause" aria-label="${T.pause}">❚❚</button>
         <div class="hud-powers" data-id="powers"></div>
@@ -282,6 +284,18 @@ export class UI {
     }
     this.feriadoBtn.classList.toggle('visible', stored);
     this.hud.classList.toggle('shielded', shield);
+  }
+
+  /** Cuánto te falta para llegar a tu amiga (la barrita se llena al acercarte). */
+  setFriend(gap: number, cheering: boolean): void {
+    const m = Math.max(0, Math.round(gap));
+    if (m !== this.friendCache) {
+      this.friendCache = m;
+      this.q(this.hud, 'friendGap').textContent = String(m);
+      const k = 1 - Math.min(1, gap / config.friend.maxGap);
+      this.q(this.hud, 'friendBar').style.transform = `scaleX(${k})`;
+    }
+    this.q(this.hud, 'friend').classList.toggle('meet', cheering);
   }
 
   setClock(text: string): void {

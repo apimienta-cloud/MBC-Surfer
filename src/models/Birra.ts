@@ -61,6 +61,8 @@ export class Birra {
   private arms: THREE.Group[] = [];
   private brows: THREE.Mesh[] = [];
   private pupils: THREE.Mesh[] = [];
+  private eyes: THREE.Mesh[] = [];
+  private blinkTimer = 2 + Math.random() * 3;
   private smile!: THREE.Mesh;
   private can!: THREE.Group;
   private mouthOpen!: THREE.Mesh;
@@ -93,50 +95,45 @@ export class Birra {
     this.layer.add(this.squash);
     this.squash.position.y = -this.center;
 
-    const bottleMat = new THREE.MeshStandardMaterial({
+    // Vidrio o lata con barniz brillante; el vidrio lleva gotitas de condensación (birra fría)
+    const bottleMat = new THREE.MeshPhysicalMaterial({
       color: skin.color,
-      roughness: pr.metal ? 0.35 : 0.12,
-      metalness: pr.metal ? 0.3 : 0.05,
+      roughness: pr.metal ? 0.26 : 0.14,
+      metalness: pr.metal ? 0.65 : 0.0,
+      clearcoat: 1,
+      clearcoatRoughness: pr.metal ? 0.18 : 0.04,
       transparent: pr.glass,
-      opacity: pr.glass ? 0.88 : 1,
+      opacity: pr.glass ? 0.86 : 1,
+      normalMap: pr.metal ? null : dropletsNormal(),
+      normalScale: new THREE.Vector2(0.55, 0.55),
     });
-    const goldMat = new THREE.MeshStandardMaterial({ color: color('gold'), roughness: 0.3, metalness: 0.6 });
-    const foamMat = new THREE.MeshStandardMaterial({ color: color('foam'), roughness: 0.9 });
-    const limbMat = new THREE.MeshStandardMaterial({ color: BC.limbColor, roughness: 0.7 });
-    const gloveMat = new THREE.MeshStandardMaterial({ color: BC.glovesColor, roughness: 0.8 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: '#1A1110', roughness: 0.6 });
-    const whiteMat = new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.4 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: color('gold'), roughness: 0.25, metalness: 0.75 });
+    const foamMat = new THREE.MeshPhysicalMaterial({ color: color('foam'), roughness: 0.75, sheen: 1, sheenColor: new THREE.Color('#FFFFFF'), sheenRoughness: 0.5 });
+    const limbMat = new THREE.MeshStandardMaterial({ color: BC.limbColor, roughness: 0.55 });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: BC.glovesColor, roughness: 0.6 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: '#1A1110', roughness: 0.3 });
+    const whiteMat = new THREE.MeshPhysicalMaterial({ color: '#FFFFFF', roughness: 0.2, clearcoat: 1 });
 
-    // Cuerpo
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(pr.bodyR, pr.bodyR * (pr.taper ?? 0.97), pr.bodyH, 20), bottleMat);
-    body.position.y = legL + pr.bodyH / 2;
+    // Envase de una pieza: silueta torneada (base redondeada, cuerpo, hombro curvo, cuello y pico)
+    const body = new THREE.Mesh(new THREE.LatheGeometry(bottleProfile(pr), 40), bottleMat);
+    body.position.y = legL;
     this.squash.add(body);
-    if (pr.shoulderH > 0) {
-      const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(pr.neckR, pr.bodyR, pr.shoulderH, 20), bottleMat);
-      shoulder.position.y = bodyTop + pr.shoulderH / 2;
-      this.squash.add(shoulder);
-    }
-    if (pr.neckH > 0) {
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(pr.neckR, pr.neckR, pr.neckH, 16), bottleMat);
-      neck.position.y = bodyTop + pr.shoulderH + pr.neckH / 2;
-      this.squash.add(neck);
-    }
     if (pr.metal) {
       // Borde de la lata
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(pr.neckR, 0.025, 6, 20), goldMat);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(pr.neckR, 0.022, 10, 32), goldMat);
       rim.rotation.x = Math.PI / 2;
       rim.position.y = this.topY;
       this.squash.add(rim);
     }
     if (pr.handle === 'mug') {
       // Manija del chopp (del lado derecho)
-      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 8, 16, Math.PI), bottleMat);
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 12, 24, Math.PI), bottleMat);
       handle.rotation.z = -Math.PI / 2;
       handle.position.set(pr.bodyR, legL + pr.bodyH / 2, 0);
       this.squash.add(handle);
     } else if (pr.handle === 'growler') {
       // Asa del botellón, entre el hombro y el cuello
-      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.04, 8, 16, Math.PI * 1.2), bottleMat);
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.04, 12, 24, Math.PI * 1.2), bottleMat);
       handle.rotation.z = -Math.PI * 0.6;
       handle.position.set(pr.bodyR * 0.62, bodyTop + 0.1, 0);
       this.squash.add(handle);
@@ -153,8 +150,8 @@ export class Birra {
     this.foam.position.y = foamY;
     this.squash.add(this.foam);
     const foamR = pr.cap ? 0.11 : pr.neckR * 0.55;
-    const foamGeo = new THREE.SphereGeometry(1, 10, 8);
-    const ballCount = pr.cap ? 5 : 7;
+    const foamGeo = new THREE.SphereGeometry(1, 18, 14);
+    const ballCount = pr.cap ? 6 : 8;
     for (let i = 0; i < ballCount; i++) {
       const a = (i / ballCount) * Math.PI * 2;
       const r = pr.cap ? 0.09 : pr.neckR * 0.55;
@@ -174,10 +171,10 @@ export class Birra {
     if (pr.cap) {
       const cap = new THREE.Group();
       const capMat = pr.capColor ? new THREE.MeshStandardMaterial({ color: pr.capColor, roughness: 0.5 }) : goldMat;
-      cap.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 18), capMat));
-      const tooth = new THREE.BoxGeometry(0.035, 0.06, 0.03);
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * Math.PI * 2;
+      cap.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 32), capMat));
+      const tooth = new THREE.CapsuleGeometry(0.016, 0.03, 3, 8);
+      for (let i = 0; i < 21; i++) {
+        const a = (i / 21) * Math.PI * 2;
         const t = new THREE.Mesh(tooth, capMat);
         t.position.set(Math.cos(a) * 0.155, -0.012, Math.sin(a) * 0.155);
         t.rotation.y = -a;
@@ -190,17 +187,24 @@ export class Birra {
 
     // Cara (al frente = -z)
     const faceZ = (x: number): number => -Math.sqrt(Math.max(0, pr.bodyR * pr.bodyR - x * x)) - 0.01;
-    const eyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
-    const pupilGeo = new THREE.SphereGeometry(0.04, 10, 8);
-    const browGeo = new THREE.BoxGeometry(0.12, 0.028, 0.03);
+    const eyeGeo = new THREE.SphereGeometry(0.085, 24, 18);
+    const pupilGeo = new THREE.SphereGeometry(0.042, 18, 14);
+    const shineGeo = new THREE.SphereGeometry(0.012, 8, 6);
+    const shineMat = new THREE.MeshBasicMaterial({ color: '#FFFFFF' });
+    const browGeo = new THREE.CapsuleGeometry(0.016, 0.09, 4, 10).rotateZ(Math.PI / 2);
     for (const sx of [-1, 1]) {
       const x = sx * 0.11;
       const eye = new THREE.Mesh(eyeGeo, whiteMat);
       eye.scale.z = 0.55;
       eye.position.set(x, eyesY, faceZ(x) + 0.01);
       this.squash.add(eye);
+      this.eyes.push(eye);
       const pupil = new THREE.Mesh(pupilGeo, darkMat);
       pupil.position.set(x + sx * -0.012, eyesY - 0.005, eye.position.z - 0.04);
+      // Brillito en el ojo: le da vida a la mirada
+      const shine = new THREE.Mesh(shineGeo, shineMat);
+      shine.position.set(0.014, 0.016, -0.034);
+      pupil.add(shine);
       this.squash.add(pupil);
       this.pupils.push(pupil);
       const brow = new THREE.Mesh(browGeo, darkMat);
@@ -209,26 +213,32 @@ export class Birra {
       this.squash.add(brow);
       this.brows.push(brow);
     }
-    this.smile = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 6, 12, Math.PI), darkMat);
+    this.smile = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 10, 20, Math.PI), darkMat);
     this.smile.rotation.z = Math.PI;
     this.smile.position.set(0, mouthY + 0.03, faceZ(0) - 0.005);
     this.squash.add(this.smile);
-    this.mouthOpen = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), darkMat);
+    this.mouthOpen = new THREE.Mesh(new THREE.SphereGeometry(0.06, 18, 12), darkMat);
     this.mouthOpen.scale.set(1, 1, 0.4);
     this.mouthOpen.position.set(0, mouthY, faceZ(0));
     this.squash.add(this.mouthOpen);
 
     // Brazos y piernas: cápsulas finitas con pivote en hombro / cadera
-    const armGeo = new THREE.CapsuleGeometry(0.035, 0.3, 4, 8).translate(0, -0.17, 0);
-    const legGeo = new THREE.CapsuleGeometry(0.04, legL - 0.08, 4, 8).translate(0, -(legL - 0.04) / 2, 0);
-    const handGeo = new THREE.SphereGeometry(0.06, 10, 8);
-    const footGeo = new THREE.SphereGeometry(0.075, 10, 8);
+    const armGeo = new THREE.CapsuleGeometry(0.036, 0.3, 6, 12).translate(0, -0.17, 0);
+    const legGeo = new THREE.CapsuleGeometry(0.042, legL - 0.08, 6, 12).translate(0, -(legL - 0.04) / 2, 0);
+    const handGeo = new THREE.SphereGeometry(0.06, 18, 14);
+    const thumbGeo = new THREE.CapsuleGeometry(0.02, 0.03, 4, 8);
+    const footGeo = new THREE.SphereGeometry(0.075, 18, 14);
     for (const sx of [-1, 1]) {
       const arm = new THREE.Group();
       arm.position.set(sx * (pr.bodyR + 0.03), legL + pr.bodyH * 0.55, 0);
       arm.add(new THREE.Mesh(armGeo, limbMat));
       const hand = new THREE.Mesh(handGeo, gloveMat);
       hand.position.y = -0.36;
+      // Pulgar del guante
+      const thumb = new THREE.Mesh(thumbGeo, gloveMat);
+      thumb.position.set(-sx * 0.045, 0.01, -0.03);
+      thumb.rotation.z = sx * 0.6;
+      hand.add(thumb);
       arm.add(hand);
       arm.rotation.z = sx * 0.35;
       this.squash.add(arm);
@@ -250,10 +260,15 @@ export class Birra {
       const leg = new THREE.Group();
       leg.position.set(sx * pr.bodyR * 0.45, legL, 0);
       leg.add(new THREE.Mesh(legGeo, limbMat));
+      // Zapatilla: puntera oscura con suela blanca
       const foot = new THREE.Mesh(footGeo, darkMat);
       foot.scale.set(1, 0.6, 1.5);
-      foot.position.set(0, -legL + 0.04, -0.04);
+      foot.position.set(0, -legL + 0.045, -0.04);
       leg.add(foot);
+      const sole = new THREE.Mesh(footGeo, gloveMat);
+      sole.scale.set(1.05, 0.25, 1.55);
+      sole.position.set(0, -legL + 0.012, -0.04);
+      leg.add(sole);
       this.squash.add(leg);
       this.legs.push(leg);
     }
@@ -364,6 +379,12 @@ export class Birra {
   animate(s: BirraAnimState): void {
     const dt = s.dt;
     this.time += dt;
+    // Parpadea cada tanto
+    this.blinkTimer -= dt;
+    if (this.blinkTimer < -0.12) this.blinkTimer = 2.2 + Math.random() * 3.5;
+    const lid = this.blinkTimer < 0 ? 0.12 : 1;
+    for (const e of this.eyes) e.scale.y = lid;
+    for (const p of this.pupils) p.visible = lid > 0.5;
     if (s.grounded && !this.wasGrounded) this.onLand();
     this.wasGrounded = s.grounded;
 
@@ -516,4 +537,101 @@ function makeLabelTexture(): THREE.CanvasTexture {
   img.onerror = () => console.warn('[brand] Sin mbc-logo.png: etiqueta lisa.');
   img.src = config.brand.logoUrl;
   return tex;
+}
+
+/**
+ * Silueta del envase para tornear (radio, altura desde la base del cuerpo).
+ * Botellas: base redondeada, cuerpo, hombro en curva, cuello y pico. Latas: bordes rebatidos. Vasos: labio redondeado.
+ */
+function bottleProfile(pr: Profile): THREE.Vector2[] {
+  const R = pr.bodyR;
+  const tp = pr.taper ?? 0.97;
+  const H = pr.bodyH;
+  const rAt = (y: number): number => R * (tp + (1 - tp) * (y / H));
+  const pts: THREE.Vector2[] = [new THREE.Vector2(0, 0)];
+  const add = (r: number, y: number): void => void pts.push(new THREE.Vector2(r, y));
+  if (pr.metal) {
+    add(R * 0.78, 0);
+    add(R * 0.93, 0.012);
+    add(R, 0.05);
+    add(R, H - 0.03);
+    add(pr.neckR * 1.02, H + pr.shoulderH);
+    add(pr.neckR, H + pr.shoulderH + pr.neckH);
+    add(pr.neckR * 0.9, H + pr.shoulderH + pr.neckH);
+    add(0, H + pr.shoulderH + pr.neckH - 0.01);
+    return pts;
+  }
+  // Talón redondeado
+  for (let i = 0; i <= 4; i++) {
+    const a = (i / 4) * (Math.PI / 2);
+    add(rAt(0.05) - 0.05 + Math.sin(a) * 0.05, 0.05 - Math.cos(a) * 0.05);
+  }
+  add(rAt(H), H);
+  if (pr.shoulderH > 0) {
+    // Hombro en S suave hasta el cuello
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 8;
+      const e = (1 - Math.cos(t * Math.PI)) / 2;
+      add(R + (pr.neckR - R) * e, H + pr.shoulderH * t);
+    }
+  }
+  const top = H + pr.shoulderH + pr.neckH;
+  if (pr.neckH > 0) {
+    add(pr.neckR * 0.96, top - 0.04);
+    // Pico (anillo del cuello)
+    add(pr.neckR * 1.14, top - 0.03);
+    add(pr.neckR * 1.14, top - 0.005);
+    add(pr.neckR * 0.85, top);
+  } else {
+    add(rAt(H) * 1.01, top - 0.01);
+    add(rAt(H) * 0.97, top);
+  }
+  add(0, top - 0.005);
+  return pts;
+}
+
+let droplets: THREE.CanvasTexture | null = null;
+
+/** Mapa de normales con gotitas de condensación, generado una vez. */
+function dropletsNormal(): THREE.CanvasTexture {
+  if (droplets) return droplets;
+  const N = 256;
+  const h = new Float32Array(N * N);
+  let seed = 7;
+  const rnd = (): number => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 260; i++) {
+    const cx = rnd() * N;
+    const cy = rnd() * N;
+    const r = 1.5 + rnd() * rnd() * 6;
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) {
+      for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+        const d = Math.hypot(x - cx, y - cy) / r;
+        if (d >= 1) continue;
+        const k = ((y + N) % N) * N + ((x + N) % N);
+        h[k] = Math.max(h[k], Math.sqrt(1 - d * d) * r * 0.5);
+      }
+    }
+  }
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = N;
+  const ctx = cv.getContext('2d')!;
+  const img = ctx.createImageData(N, N);
+  const at = (xx: number, yy: number): number => h[((yy + N) % N) * N + ((xx + N) % N)];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const dx = at(x + 1, y) - at(x - 1, y);
+      const dy = at(x, y + 1) - at(x, y - 1);
+      const inv = 1 / Math.hypot(dx, dy, 1);
+      const i = (y * N + x) * 4;
+      img.data[i] = (-dx * inv * 0.5 + 0.5) * 255;
+      img.data[i + 1] = (dy * inv * 0.5 + 0.5) * 255;
+      img.data[i + 2] = (inv * 0.5 + 0.5) * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  droplets = new THREE.CanvasTexture(cv);
+  droplets.wrapS = droplets.wrapT = THREE.RepeatWrapping;
+  droplets.repeat.set(3, 2);
+  return droplets;
 }

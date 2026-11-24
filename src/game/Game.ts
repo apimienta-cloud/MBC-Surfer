@@ -3,6 +3,7 @@ import { config, PowerUpType, ZoneId } from '../config';
 import { Input } from './Input';
 import { Player } from './Player';
 import { Chaser } from './Chaser';
+import { Friend } from './Friend';
 import { ChunkManager } from '../world/ChunkManager';
 import { Obstacles } from '../world/Obstacles';
 import { Collectibles } from '../world/Collectibles';
@@ -33,6 +34,9 @@ export class Game {
   private ui: UI;
   private player = new Player();
   private chaser = new Chaser();
+  private friend: Friend;
+  /** Festejo de la birra en una juntada. */
+  private meetPose = 0;
   private zones = new ZoneSystem();
   private particles = new Particles();
   private chunks = new ChunkManager(this.zones, this.particles);
@@ -49,7 +53,7 @@ export class Game {
   private passedCentenario = false;
   private intro = new Intro(this.particles);
   /** Lo que hizo en la partida, para los logros de la cinemática final. */
-  private runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, missions: [] as string[] };
+  private runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, meets: 0, missions: [] as string[] };
   /** Tiempo de la cinemática final (cámara girando alrededor de la birra). */
   private outroT = 0;
 
@@ -104,6 +108,8 @@ export class Game {
     for (const k of config.skins) if (k.price === 0 && !this.save.skins.includes(k.id)) this.save.skins.push(k.id);
     if (!config.skins.some((k) => k.id === this.save.skin)) this.save.skin = config.skins[0].id;
     this.player.setSkin(this.skinDef(this.save.skin));
+    this.friend = new Friend(this.friendSkin());
+    this.scene.add(this.friend.root);
     this.missions = new Missions(this.save);
 
     this.input = new Input(container);
@@ -169,7 +175,9 @@ export class Game {
     this.beatBest = false;
     this.camDip = 0;
     this.passedCentenario = false;
-    this.runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, missions: [] };
+    this.runStats = { jumps: 0, rolls: 0, roofs: 0, powerups: 0, meets: 0, missions: [] };
+    this.friend.reset();
+    this.meetPose = 0;
     this.outroT = 0;
     // La cinemática final esconde lo que tapa a la birra
     this.obstacles.group.visible = this.coins.mesh.visible = this.powerups.group.visible = true;
@@ -245,6 +253,28 @@ export class Game {
     return config.skins.find((k) => k.id === id) ?? config.skins[0];
   }
 
+  /** La amiga usa otra variedad que la birra del jugador. */
+  private friendSkin() {
+    return this.skinDef(this.save.skin === config.friend.skin ? config.friend.altSkin : config.friend.skin);
+  }
+
+  /** ¡Juntada! Brindan, puntos extra y ella se vuelve a adelantar. */
+  private onMeet(): void {
+    const n = this.friend.meets;
+    const bonus = config.friend.bonus * n;
+    this.score += bonus;
+    this.runStats.meets = n;
+    this.meetPose = config.friend.cheerTime;
+    const p = this.player;
+    // Chispas y espuma entre las dos, donde chocan las birras
+    const mx = p.x + this.friend.meetSide * 0.48;
+    for (let i = 0; i < 10; i++) this.particles.sparkle(mx + (Math.random() - 0.5) * 0.8, 1.3 + Math.random() * 0.8, -p.s);
+    this.particles.foamPuff(mx, p.foamWorldY, -p.s, 10);
+    this.sfx('mission');
+    this.ui.toast(config.texts.friendMeet);
+    this.ui.notice(config.texts.friendMeetBonus.replace('{n}', String(n)).replace('{p}', bonus.toLocaleString('es-UY')), 2200);
+  }
+
   private openSkins(): void {
     this.ui.renderSkins(config.skins, this.save.skins, this.save.skin, this.save.coinsTotal);
     this.ui.show('skins');
@@ -263,6 +293,7 @@ export class Game {
     }
     this.save.skin = id;
     this.player.setSkin(k);
+    this.friend.setSkin(this.friendSkin());
     Save.save(this.save);
     this.openSkins();
   }
@@ -470,6 +501,8 @@ export class Game {
     n('🌀', T.achRolls, rs.rolls);
     n('🚌', T.achRoofs, rs.roofs);
     n('⚡', T.achPowerups, rs.powerups);
+    if (rs.meets > 0) list.push({ icon: '🍻', text: T.achMeets[rs.meets === 1 ? 0 : 1].replace('{n}', String(rs.meets)), gold: true });
+    else list.push({ icon: '🍻', text: T.achFriendGap.replace('{m}', String(Math.round(this.friend.gap))) });
     for (const m of rs.missions) list.push({ icon: '✅', text: T.achMission.replace('{m}', m), gold: true });
     return list;
   }
@@ -513,6 +546,7 @@ export class Game {
       if (this.hudTimer <= 0) {
         this.hudTimer = 0.1;
         this.ui.setPowerups(this.powerups.active(), this.powerups.stored, this.powerups.shield);
+        this.ui.setFriend(this.friend.gap, this.friend.cheering);
       }
       // Récord superado en vivo (una vez por partida)
       if (!this.beatBest && this.save.bestScore > 0 && this.score > this.save.bestScore) {
@@ -586,6 +620,7 @@ export class Game {
     }
     if (hit === 'stumble') {
       p.stumble();
+      this.friend.slip();
       this.particles.foamSquirt(p.x, p.foamWorldY, -p.s);
       p.events.length = 0;
       this.shake = 0.25;
@@ -604,9 +639,11 @@ export class Game {
       this.runCoins += got;
       this.score += got * config.score.coinValue;
       this.track('coins', got);
+      this.friend.pull(got);
     }
     this.powerups.step(dt, p, (type) => this.onPowerUp(type));
     this.chaser.step(dt);
+    if (this.friend.step(dt, p.s, p.x, p.lane, this.obstacles)) this.onMeet();
     this.chunks.update(p.s, dt);
     this.obstacles.generate(this.lookAheadS(), p.s, this.speed);
   }
@@ -623,10 +660,19 @@ export class Game {
       this.particles.update(dt);
       // En el menú la birra corre en el lugar
       const animSpeed = st === 'menu' ? SP.start : st === 'playing' ? this.speed : st === 'intro' ? this.intro.walkSpeed : 0;
+      if (st === 'playing') {
+        // En la juntada la birra festeja con los brazos arriba
+        this.meetPose = Math.max(0, this.meetPose - dt);
+        p.pose = this.meetPose > 0 ? 'cheer' : null;
+        // y se da vuelta para chocar la birra con su amiga
+        const yaw = this.meetPose > 0 ? -this.friend.meetSide * (Math.PI / 2) : 0;
+        p.yaw += (yaw - p.yaw) * Math.min(1, dt * 10);
+      }
       p.render(dt, animSpeed, this.chaser.isNear && st === 'playing', st === 'caught');
       p.setSquashed(st === 'gameover' ? 0 : this.chaser.squashAmount);
       p.setShield(st === 'playing' || st === 'caught' ? this.powerups.timers.feriado : 0, this.time);
       if (st === 'playing' || st === 'caught') this.chaser.render(dt, p.x, p.s, p.groundY, this.speed, this.particles);
+      if (st === 'playing' || st === 'caught') this.friend.render(dt, p.s, st === 'playing' ? this.speed : 0, null);
       if (st === 'gameover') {
         this.outroT += dt;
         // Récord: festeja tirando brillitos
@@ -636,6 +682,7 @@ export class Game {
     this.obstacles.render(this.time);
     this.powerups.render(this.time);
     if (st === 'menu' || st === 'intro' || st === 'gameover') this.chaser.root.visible = false;
+    this.friend.root.visible = st === 'playing' || st === 'caught' || st === 'paused';
 
     // Cámara: de frente a la birra en el menú; detrás y arriba al jugar
     this.camBlend += ((st === 'menu' || st === 'intro' ? 0 : 1) - this.camBlend) * Math.min(1, dt * 3.5);
