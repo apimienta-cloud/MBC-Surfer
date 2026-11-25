@@ -140,6 +140,9 @@ export class Game {
       },
     });
     this.audio.setMuted(this.save.muted);
+    this.audio.onTrack = (t) => {
+      if (this.state === 'playing') this.ui.nowPlaying(t.artista, t.tema);
+    };
     this.ui.setMuted(this.save.muted);
     this.ui.setMenuStats(this.save.bestScore, this.save.coinsTotal);
 

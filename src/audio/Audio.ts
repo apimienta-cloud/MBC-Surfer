@@ -2,11 +2,14 @@ import { config } from '../config';
 
 const A = config.audio;
 
+export type Track = { artista: string; tema: string; archivo: string };
+
 export type Sfx = 'jump' | 'roll' | 'coin' | 'powerup' | 'stumble' | 'crash' | 'caught' | 'click' | 'shield' | 'mission' | 'land' | 'spray' | 'rattle' | 'tick';
 
 /**
- * Sonido con Web Audio. Efectos sintetizados (sin archivos) y música:
- * si existe public/assets/audio/musica.mp3 se usa ese archivo; si no, un loop sintetizado.
+ * Sonido con Web Audio. Efectos sintetizados (sin archivos) y música, en este orden de preferencia:
+ * la lista de temas de config.audio.playlist (los que existan), public/assets/audio/musica.mp3,
+ * o un loop sintetizado.
  * El contexto se crea en el primer gesto del usuario (requisito de iOS/Chrome).
  */
 export class Audio {
@@ -24,8 +27,24 @@ export class Audio {
   private timer = 0;
   private coinPitch = 0;
   private coinPitchAt = 0;
+  /** Temas de la lista que existen, en orden aleatorio. */
+  private tracks: Track[] = [];
+  private trackIdx = -1;
+  private trackEl: HTMLAudioElement | null = null;
+  /** Se llama cuando arranca un tema nuevo (para mostrar "Sonando"). */
+  onTrack: ((t: Track) => void) | null = null;
 
   constructor() {
+    // Temas de la lista: solo quedan los archivos que existen
+    Promise.all(
+      A.playlist.map((t) =>
+        fetch(t.archivo, { method: 'HEAD' })
+          .then((r) => (r.ok && (r.headers.get('content-type') ?? '').startsWith('audio') ? t : null))
+          .catch(() => null),
+      ),
+    ).then((found) => {
+      this.tracks = shuffle(found.filter((t): t is Track => t !== null));
+    });
     // Si existe el archivo de música de la marca, se usa
     fetch(A.musicFile, { method: 'HEAD' })
       .then((r) => {
@@ -63,6 +82,7 @@ export class Audio {
     this.muted = m;
     if (this.ctx) this.master.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.02);
     if (this.musicEl) this.musicEl.muted = m;
+    if (this.trackEl) this.trackEl.muted = m;
   }
 
   // ---------- Efectos ----------
@@ -170,6 +190,14 @@ export class Audio {
   startMusic(): void {
     if (this.musicOn) return;
     this.musicOn = true;
+    if (this.tracks.length) {
+      // Si había un tema a medias sigue desde ahí; si no, el próximo de la lista
+      if (this.trackEl && !this.trackEl.ended) {
+        this.trackEl.muted = this.muted;
+        this.trackEl.play().catch(() => undefined);
+      } else this.nextTrack();
+      return;
+    }
     if (this.musicFileOk) {
       if (!this.musicEl) {
         this.musicEl = new window.Audio(A.musicFile);
@@ -188,7 +216,37 @@ export class Audio {
   stopMusic(): void {
     this.musicOn = false;
     this.musicEl?.pause();
+    this.trackEl?.pause();
     clearInterval(this.timer);
+  }
+
+  /** Pasa al tema siguiente de la lista (al terminar uno o si un archivo falla). */
+  private nextTrack(): void {
+    if (!this.musicOn || !this.tracks.length) return;
+    this.trackIdx++;
+    if (this.trackIdx >= this.tracks.length) {
+      // Vuelta nueva: se mezcla otra vez sin repetir el último tema al principio
+      const last = this.tracks[this.tracks.length - 1];
+      this.tracks = shuffle(this.tracks);
+      if (this.tracks.length > 1 && this.tracks[0] === last) this.tracks.push(this.tracks.shift()!);
+      this.trackIdx = 0;
+    }
+    const t = this.tracks[this.trackIdx];
+    if (this.trackEl) this.trackEl.pause();
+    const el = new window.Audio(t.archivo);
+    el.volume = A.playlistVolume;
+    el.muted = this.muted;
+    el.addEventListener('ended', () => this.nextTrack());
+    el.addEventListener('error', () => {
+      // Archivo roto: se saca de la lista y se sigue con otro
+      this.tracks = this.tracks.filter((x) => x !== t);
+      this.trackIdx--;
+      if (this.trackEl === el) this.trackEl = null;
+      this.nextTrack();
+    });
+    this.trackEl = el;
+    el.play().catch(() => undefined);
+    this.onTrack?.(t);
   }
 
   /** Loop sintetizado: bajo, acordes cortos y percusión con aire de candombe livianito. */
@@ -221,4 +279,13 @@ export class Audio {
       this.beat++;
     }
   }
+}
+
+function shuffle<T>(a: T[]): T[] {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
 }

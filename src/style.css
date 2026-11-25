@@ -284,6 +284,40 @@ h2 { font: 800 34px/1.1 var(--display); }
 }
 .notice.visible { opacity: 1; transform: translate(-50%, 0); }
 
+/* "Sonando": tema de la lista que arrancó */
+.now-playing {
+  position: absolute;
+  left: 16px;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 14px 8px 8px;
+  border-radius: 14px;
+  background: rgba(30, 58, 95, 0.85);
+  border-left: 4px solid var(--gold);
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 4;
+}
+.now-playing.visible { opacity: 1; transform: none; }
+.now-playing .np-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--deep);
+  font: 800 17px/1 var(--sans);
+}
+.now-playing b { display: block; font: 800 15px/1.2 var(--sans); }
+.now-playing small { display: block; font: 600 13px/1.2 var(--sans); opacity: 0.8; }
+@media (max-width: 600px) { .now-playing { bottom: calc(84px + env(safe-area-inset-bottom)); } }
+
 /* ---------- Menú y pantallas ---------- */
 .menu-stats { display: flex; gap: 18px; font: 800 17px/1 var(--sans); }
 .menu-stats .coins, .wallet { display: inline-flex; align-items: center; gap: 6px; }

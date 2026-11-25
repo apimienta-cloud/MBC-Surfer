@@ -458,6 +458,19 @@ export const config = {
     musicTempo: 112,
     // Si existe el archivo se usa en vez de la música sintetizada. TODO(brand): jingle opcional de la marca
     musicFile: 'assets/audio/musica.mp3',
+    // Lista de temas: se pasan uno tras otro en orden aleatorio mientras jugás, y abajo se muestra
+    // cuál está sonando. Solo entran los archivos que existan en public/; si no hay ninguno se usa
+    // musicFile y, si tampoco está, la música sintetizada. Se pueden agregar más líneas por banda.
+    // `tema` es opcional (si está vacío se muestra solo la banda).
+    playlist: [
+      { artista: 'La Champions Liga', tema: '', archivo: 'assets/audio/musica/champions-liga.mp3' },
+      { artista: '18 Kilates', tema: '', archivo: 'assets/audio/musica/18-kilates.mp3' },
+      { artista: 'Marka Akme', tema: '', archivo: 'assets/audio/musica/marka-akme.mp3' },
+      { artista: 'El Chili Fernández', tema: '', archivo: 'assets/audio/musica/chili-fernandez.mp3' },
+      { artista: 'La Nueva Escuela', tema: '', archivo: 'assets/audio/musica/nueva-escuela.mp3' },
+      { artista: 'La Planta', tema: '', archivo: 'assets/audio/musica/la-planta.mp3' },
+    ] as { artista: string; tema: string; archivo: string }[],
+    playlistVolume: 0.45,
   },
 
   share: {

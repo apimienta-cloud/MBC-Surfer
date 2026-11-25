@@ -246,6 +246,7 @@ Si un archivo no está, usar placeholder neutro y dejar un `TODO(brand)` en el c
 - [ ] Nombres de variedades para las skins → `config.skins`
 - [ ] Texto legal → `config.brand.legalText`
 - [ ] Música / jingle (opcional) → `public/assets/audio/`
+- [ ] Temas de la lista (La Champions Liga, 18 Kilates, Marka Akme, El Chili Fernández, La Nueva Escuela, La Planta) → `public/assets/audio/musica/` con los nombres de `audio.playlist`. Necesitan permiso de los dueños para publicarse.
 
 ---
 

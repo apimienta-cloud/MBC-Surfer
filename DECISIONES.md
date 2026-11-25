@@ -266,3 +266,10 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Ropa:** remera con cuello y manga corta con dobladillo, buzo con capucha caída, suéter de manga larga con puños, jean, pollera y jogging. La prenda de arriba toma el color de la instancia.
 - **Vida:** un shader las hace respirar, balancearse apenas y girar la cabeza despacio cada tanto, con una fase distinta por persona (sale de su posición).
 - **Costo:** tienen más detalle, pero se reservan menos lugares por chunk (18 por variante) y no hacen sombra propia, así que el total dibujado quedó igual que antes.
+
+## Lista de temas
+
+- **Lista en vez de un loop:** `audio.playlist` tiene un tema por banda (La Champions Liga, 18 Kilates, Marka Akme, El Chili Fernández, La Nueva Escuela, La Planta). Al jugar se pasan uno tras otro en orden aleatorio; al dar la vuelta se mezcla de nuevo sin repetir el último. La pausa deja el tema a medias y sigue desde ahí.
+- **Solo lo que existe:** al cargar se pregunta por cada archivo y quedan los que están. Si no hay ninguno, suena `musica.mp3` y, si tampoco está, la música sintetizada de siempre. Un archivo roto se saca de la lista y se pasa al siguiente.
+- **"Sonando":** cuando arranca un tema aparece abajo a la izquierda la banda (y el tema, si se cargó en `tema`) durante unos segundos. En el celu va más arriba para no chocar con los avisos.
+- **Los archivos no vienen con el juego:** son canciones con derechos de autor. Hay que conseguirlas con permiso de los dueños (sello o banda) antes de subirlas, porque el sitio es público.

@@ -61,6 +61,8 @@ export class UI {
   private toastTimer = 0;
   private noticeEl: HTMLElement;
   private noticeTimer = 0;
+  private songEl: HTMLElement;
+  private songTimer = 0;
   private powersEl: HTMLElement;
   private feriadoBtn: HTMLButtonElement;
   private hudCache = { score: -1, meters: -1, coins: -1, mult: -1 };
@@ -98,6 +100,7 @@ export class UI {
     this.bubble = this.el('div', 'bubble');
     this.toastEl = this.el('div', 'zone-toast');
     this.noticeEl = this.el('div', 'notice');
+    this.songEl = this.el('div', 'now-playing');
 
     // ---------- Intro (franjas de cine) ----------
     const intro = this.panel('intro');
@@ -310,6 +313,14 @@ export class UI {
     this.toastEl.classList.add('visible');
     clearTimeout(this.toastTimer);
     this.toastTimer = window.setTimeout(() => this.toastEl.classList.remove('visible'), 2200);
+  }
+
+  /** "Sonando": banda y tema que arrancó, un rato abajo a la izquierda. */
+  nowPlaying(artista: string, tema: string): void {
+    this.songEl.innerHTML = `<span class="np-icon">♪</span><span><b>${esc(artista)}</b>${tema ? `<small>${esc(tema)}</small>` : ''}</span>`;
+    this.songEl.classList.add('visible');
+    clearTimeout(this.songTimer);
+    this.songTimer = window.setTimeout(() => this.songEl.classList.remove('visible'), 4500);
   }
 
   /** Aviso chiquito abajo (misión cumplida, power-up, copiado...). */
