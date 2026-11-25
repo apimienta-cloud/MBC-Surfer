@@ -141,6 +141,7 @@ export class ChunkManager {
 
     if (dt > 0) {
       tickGround(dt);
+      this.props.tick(dt);
       for (const s of this.slots) {
         if (!s.smoke.length) continue;
         s.smokeAcc += dt * SMOKE_PER_SECOND;

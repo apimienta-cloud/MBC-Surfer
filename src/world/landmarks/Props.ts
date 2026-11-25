@@ -183,10 +183,10 @@ const PER_SLOT: Record<PropType, number> = {
   muro: 12,
   guirnalda: 6,
   cartelMBC: 6,
-  persona: 24,
-  personaMate: 24,
-  personaGorra: 24,
-  personaBoina: 24,
+  persona: 18,
+  personaMate: 18,
+  personaGorra: 18,
+  personaBoina: 18,
   arbolRedondo: 30,
   arbolAlto: 30,
 };
@@ -195,6 +195,45 @@ interface Entry {
   base: THREE.InstancedMesh;
   tint: THREE.InstancedMesh | null;
   counts: number[];
+}
+
+const swayTime = { value: 0 };
+
+/**
+ * Material que hace "vivir" a la gente: respiran, se balancean un poquito y giran la cabeza cada tanto,
+ * cada uno a su ritmo (la fase sale de la posición de la instancia). Envuelve al material original.
+ */
+function swaying<T extends THREE.MeshStandardMaterial>(src: T, key: string): T {
+  const m = src.clone() as T;
+  const prev = src.onBeforeCompile;
+  m.onBeforeCompile = (shader, renderer) => {
+    prev.call(src, shader, renderer);
+    shader.uniforms.uSway = swayTime;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+        uniform float uSway;`)
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        #ifdef USE_INSTANCING
+        {
+          float ph_ = instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 0.73;
+          float t_ = uSway + ph_;
+          float k_ = clamp(transformed.y / 1.7, 0.0, 1.0);
+          // Balanceo del cuerpo y, desde el cuello, un giro de cabeza lento y ocasional
+          float head_ = smoothstep(1.47, 1.55, transformed.y);
+          float look_ = sin(t_ * 0.31) * sin(t_ * 0.53 + 1.0);
+          float a_ = sin(t_ * 0.9) * 0.035 * k_ + head_ * look_ * 0.55;
+          float c_ = cos(a_);
+          float s_ = sin(a_);
+          transformed.xz = mat2(c_, s_, -s_, c_) * transformed.xz;
+          transformed.y *= 1.0 + sin(t_ * 2.1) * 0.006 * k_;
+        }
+        #endif`,
+      );
+  };
+  m.customProgramCacheKey = () => key;
+  return m;
 }
 
 const tmpM = new THREE.Matrix4();
@@ -213,14 +252,17 @@ export class PropInstancer {
   constructor(private slots: number) {
     const d = defs();
     const tintMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+    const personBase = swaying(kitMaterial, 'person-base');
+    const personTint = swaying(tintMat, 'person-tint');
     this.entries = {} as Record<PropType, Entry>;
     for (const type of Object.keys(d) as PropType[]) {
       const cap = PER_SLOT[type] * slots;
       const def = d[type];
-      const base = new THREE.InstancedMesh(def.base, kitMaterial, cap);
+      const person = type.startsWith('persona');
+      const base = new THREE.InstancedMesh(def.base, person ? personBase : kitMaterial, cap);
       let tint: THREE.InstancedMesh | null = null;
       if (def.tint) {
-        let mat = tintMat;
+        let mat: THREE.Material = person ? personTint : tintMat;
         if (def.map) {
           // Cara con textura de marca que se ilumina de noche; si falta el archivo queda gris oscura
           const m = glowEmissive(
@@ -242,8 +284,9 @@ export class PropInstancer {
           );
           mat = m;
         } else if (def.emissive) {
-          mat = new THREE.MeshStandardMaterial({ vertexColors: true, emissive: '#FFC86B', emissiveIntensity: 0.2 });
-          this.emissiveMats.push(mat);
+          const em = new THREE.MeshStandardMaterial({ vertexColors: true, emissive: '#FFC86B', emissiveIntensity: 0.2 });
+          this.emissiveMats.push(em);
+          mat = em;
         }
         tint = new THREE.InstancedMesh(def.tint, mat, cap);
         tint.setColorAt(0, tmpC.set('#ffffff'));
@@ -311,6 +354,11 @@ export class PropInstancer {
         if (e.tint.instanceColor) e.tint.instanceColor.needsUpdate = true;
       }
     }
+  }
+
+  /** Avanza el movimiento de la gente. */
+  tick(dt: number): void {
+    swayTime.value += dt;
   }
 
   /** De noche se prenden los faroles. */

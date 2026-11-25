@@ -258,3 +258,11 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **El mar se sigue viendo:** en Rambla, Pocitos y Puerto (`backdrop.left = false`) no hay ciudad de fondo del lado izquierdo y la silueta lejana se apaga hacia ese lado. En la transición entre zonas se mezcla de a poco.
 - **Gente con variedad:** cuatro modelos con cara, pelo, zapatillas y mangas: con un vaso de birra, una chica con mate y termo (bien uruguayo), un pibe con gorra y mochila saludando y un señor de boina con bigote. La variante sale de la posición, así las zonas no cambian. Se armaron con pocos segmentos y sin sombra propia (son chicas en pantalla y eran lo más caro de dibujar).
 - **Árboles:** tres formas (plátano de vereda, copa redonda, alto) con la copa hecha de muchas masas chicas y sombreado horneado (más oscuro abajo y adentro). Un 14 % son jacarandás violetas, como Montevideo en noviembre. Palmeras con tronco anillado y algo curvo, y hojas arqueadas con folíolos en V.
+
+## Gente más desarrollada
+
+- **Menos "formitas":** las personas dejaron de ser cápsulas. Cada parte es una pieza torneada con su silueta: tobillo, pantorrilla, rodilla y muslo; cadera con cinturón y hebilla; torso con cintura, pecho y hombros; brazos con codo y muñeca; manos ovaladas con pulgar; zapatillas con suela.
+- **Cara:** cabeza con mentón más angosto que el cráneo, orejas, ojos con blanco e iris, cejas, nariz y boca. El pelo es un casquete un poco más grande que la cabeza, que deja la frente libre y baja en la nuca; la chica tiene melena y flequillo, el pibe gorra con visera y el señor boina y lentes.
+- **Ropa:** remera con cuello y manga corta con dobladillo, buzo con capucha caída, suéter de manga larga con puños, jean, pollera y jogging. La prenda de arriba toma el color de la instancia.
+- **Vida:** un shader las hace respirar, balancearse apenas y girar la cabeza despacio cada tanto, con una fase distinta por persona (sale de su posición).
+- **Costo:** tienen más detalle, pero se reservan menos lugares por chunk (18 por variante) y no hacen sombra propia, así que el total dibujado quedó igual que antes.

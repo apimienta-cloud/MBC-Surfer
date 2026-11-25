@@ -191,7 +191,7 @@ Fuentes: una display redondeada y divertida para títulos (Google Fonts, por eje
 - Piso con texturas generadas por código (`src/world/Ground.ts`), en coordenadas del mundo: asfalto con grano, veredas de baldosas teñidas por zona con cordón de granito y cuneta, pasto, arena con ondas, hormigón con juntas y agua con dos capas de olas que se mueven.
 - Cielo con nubes que pasan a medida que la birra avanza y estrellas de noche.
 - **Ciudad de fondo** (`src/world/Backdrop.ts`): dos filas de edificios altos detrás de las cuadras, con ventanas por shader que se prenden de noche, y una silueta de ciudad lejana alrededor del horizonte (en `Sky.ts`). Del lado del mar (Rambla, Pocitos, Puerto: `backdrop.left = false` en la zona) no hay ciudad y se ve el agua.
-- **Gente** (`landmarks/People.ts`): cuatro variantes (con birra, con mate y termo, pibe con gorra y mochila saludando, señor de boina); las zonas piden `persona` y la variante sale de la posición.
+- **Gente** (`landmarks/People.ts`): cuerpos con siluetas torneadas (pantorrilla, rodilla, muslo, cintura, pecho, hombros, codo), cara con ojos, cejas, nariz y boca, pelo con volumen, manos con pulgar y ropa con cuello, mangas y cinturón. Cuatro variantes (con birra, con mate y termo, pibe con gorra y mochila saludando, señor de boina con lentes); las zonas piden `persona` y la variante sale de la posición. Respiran, se balancean y giran la cabeza cada tanto (shader, cada uno a su ritmo).
 - **Árboles** (`landmarks/Trees.ts`): plátano, copa redonda y alto, con follaje sombreado por vértice; algunos son jacarandás en flor. Palmeras con tronco anillado y hojas arqueadas.
 
 ---
