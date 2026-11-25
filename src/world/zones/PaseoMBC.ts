@@ -9,6 +9,7 @@ export const PaseoMBC: ZoneDef = {
   id: 'paseoMBC',
   road: 'asphalt',
   sidewalk: '#BEB3A3',
+  backdrop: { height: 0.8 },
   decorate(c) {
     c.sides([{ kind: 'concrete', width: 80 }], [{ kind: 'concrete', width: 80 }]);
     const mid = -c.L / 2;

@@ -9,6 +9,7 @@ import { ZoneSystem } from './zones';
 import type { ChunkCtx, GroundKind, Side, Strip, ZoneDef } from './zones/Zone';
 import type { Particles } from '../fx/Particles';
 import { makeGround, tickGround, GroundMaterials } from './Ground';
+import { Backdrop } from './Backdrop';
 
 const W = config.world;
 const L = W.chunkLength;
@@ -46,6 +47,7 @@ export class ChunkManager {
   private roadMats: Record<ZoneDef['road'], THREE.Material>;
   private groundMats: Record<GroundKind, THREE.Material>;
   private ground: GroundMaterials;
+  private backdrop: Backdrop;
   private buildings = new Map<BuildingStyle, BuildingVariant[]>();
   private bannerGeo: THREE.BufferGeometry;
   private bannerMats = new Map<string, THREE.Material>();
@@ -58,6 +60,8 @@ export class ChunkManager {
     const count = W.chunksAhead + W.chunksBehind + 1;
     this.props = new PropInstancer(count);
     this.group.add(this.props.group);
+    this.backdrop = new Backdrop(count);
+    this.group.add(this.backdrop.mesh);
 
     // Piso con texturas generadas en coordenadas del mundo (ver Ground.ts)
     const gm = (this.ground = makeGround(makeCobble()));
@@ -164,6 +168,7 @@ export class ChunkManager {
 
   setNight(f: number): void {
     this.props.setNight(f);
+    this.backdrop.setNight(f);
     setNightGlow(f);
   }
 
@@ -216,6 +221,11 @@ export class ChunkManager {
       zone.decorate(ctx);
     }
     this.props.end(slotIdx);
+    // Ciudad de fondo, detrás de lo que haya puesto la zona (y nunca del lado del mar)
+    const bd = info.transition ? {} : (zone.backdrop ?? {});
+    const base = Math.max(EDGE + 18, bd.start ?? 0);
+    const start = (si: number): number | null => (si === 0 && bd.left === false ? null : Math.max(base, ctx.outer[si] + 3));
+    this.backdrop.fill(slotIdx, -k * L, L, [start(0), start(1)], bd.height ?? 1, mulberry32(k * 7919 + 3));
   }
 
   // Acceso para el Builder
@@ -260,6 +270,13 @@ class Builder implements ChunkCtx {
   readonly edge = EDGE;
   private reserved: [number, number][][] = [[], []];
   private r: () => number;
+  /** Hasta dónde llega lo construido de cada lado (para poner la ciudad de fondo detrás). */
+  readonly outer: [number, number] = [0, 0];
+
+  private reach(side: Side, x: number): void {
+    const i = side < 0 ? 0 : 1;
+    this.outer[i] = Math.max(this.outer[i], x);
+  }
 
   constructor(
     private cm: ChunkManager,
@@ -305,6 +322,7 @@ class Builder implements ChunkCtx {
     const x = side < 0 ? -(EDGE + gap) - bb.max.x : EDGE + gap + bb.max.x;
     mesh.position.set(x, 0, z);
     mesh.rotation.y = this.face(side) + side * angle;
+    this.reach(side, Math.abs(x) + Math.max(Math.abs(bb.min.x), Math.abs(bb.max.x), Math.abs(bb.min.z), Math.abs(bb.max.z)));
     if (lm.extras) mesh.add(lm.extras.clone());
     this.slot.decor.add(mesh);
     const z0 = side < 0 ? z + bb.min.z : z - bb.max.z;
@@ -334,6 +352,7 @@ class Builder implements ChunkCtx {
       const mesh = new THREE.Mesh(v.geo, kitMaterial);
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.position.set(side * (EDGE + setback + v.depth / 2), 0, z - v.width / 2);
+      this.reach(side, EDGE + setback + v.depth);
       mesh.rotation.y = this.face(side);
       this.slot.decor.add(mesh);
       z = z0 - 0.3 - this.r() * 1.5;

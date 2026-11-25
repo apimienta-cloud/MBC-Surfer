@@ -5,6 +5,7 @@ export const Rambla: ZoneDef = {
   id: 'rambla',
   road: 'asphalt',
   sidewalk: '#C9BFAE',
+  backdrop: { left: false },
   horizon: { id: 'cerro', x: -150, z: -250, rotY: 0.5 },
   decorate(c) {
     c.sides([{ kind: 'concrete', width: 0.9 }, { kind: 'water', width: 220, y: -0.7 }], [{ kind: 'concrete', width: 80 }]);

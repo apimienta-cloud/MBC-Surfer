@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { config } from '../../config';
 import { Kit, glowEmissive, kitMaterial } from './kit';
+import { buildPerson } from './People';
+import { buildPalm, buildTree } from './Trees';
 
 /**
  * Props repetidos (faroles, árboles, sombrillas...) con InstancedMesh: un draw call por tipo para todo el mundo.
@@ -19,7 +21,20 @@ export type PropType =
   | 'muro'
   | 'guirnalda'
   | 'cartelMBC'
-  | 'persona';
+  | 'persona'
+  // Variantes internas: las zonas piden 'persona' o 'arbol' y se reparten solas
+  | 'personaMate'
+  | 'personaGorra'
+  | 'personaBoina'
+  | 'arbolRedondo'
+  | 'arbolAlto';
+
+const VARIANTS: Partial<Record<PropType, PropType[]>> = {
+  persona: ['persona', 'personaMate', 'personaGorra', 'personaBoina'],
+  arbol: ['arbol', 'arbolRedondo', 'arbolAlto'],
+};
+/** Algunos árboles son jacarandás en flor (noviembre en Montevideo). */
+const JACARANDA = '#9C7DD3';
 
 interface PropDef {
   base: THREE.BufferGeometry;
@@ -55,28 +70,6 @@ function guirnalda(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry }
   return { base: base.build(), tint: bulbs.build() };
 }
 
-/** Peatón low-poly sin cara con un vaso de birra; la remera toma el color de la instancia. */
-function peaton(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
-  const base = new Kit()
-    .capsule(0.072, 0.72, '#2B3A55', 0, 0.43, -0.1)
-    .capsule(0.072, 0.72, '#2B3A55', 0, 0.43, 0.1)
-    .capsule(0.07, 0.02, '#3A2E26', 0.05, 0.06, -0.1, { rz: Math.PI / 2 })
-    .capsule(0.07, 0.02, '#3A2E26', 0.05, 0.06, 0.1, { rz: Math.PI / 2 })
-    .sphere(0.13, '#C99A78', 0, 1.66, 0)
-    .sphere(0.135, '#2A1E14', -0.03, 1.71, 0, { sy: 0.7 })
-    .sphere(0.05, '#C99A78', 0.4, 1.15, 0.25)
-    .sphere(0.05, '#C99A78', 0.02, 0.86, -0.27)
-    .cyl(0.05, 0.042, 0.16, '#F2B134', 0.42, 1.1, 0.25, 12)
-    .build();
-  // Remera: torso redondeado, un brazo con el vaso y el otro colgando
-  const tint = new Kit()
-    .capsule(0.2, 0.3, '#ffffff', 0, 1.2, 0, { sx: 0.62 })
-    .capsule(0.055, 0.3, '#ffffff', 0.2, 1.17, 0.25, { rz: Math.PI / 2 })
-    .capsule(0.055, 0.34, '#ffffff', 0.01, 1.1, -0.26, { rx: 0.08 })
-    .build();
-  return { base, tint };
-}
-
 /** Cartel redondo MBC en poste: la cara usa el recorte del cartel real (dos caras, con UVs). */
 function cartelPoste(): { base: THREE.BufferGeometry; tint: THREE.BufferGeometry } {
   const r = 0.8;
@@ -107,30 +100,6 @@ function defs(): Record<PropType, PropDef> {
     .cone(0.3, 0.35, '#2F3B34', 1.1, 4.05, 0, 6)
     .build();
   const bulb = new Kit().sphere(0.2, W, 1.1, 3.95, 0, undefined, 2).build();
-
-  const arbol = new Kit()
-    .cyl(0.16, 0.28, 3.0, '#6B4A2E', 0, 0, 0, 10)
-    .cyl(0.06, 0.1, 1.4, '#6B4A2E', 0.1, 2.6, 0.2, 8, { rz: -0.6, rx: 0.3 })
-    .cyl(0.06, 0.1, 1.3, '#6B4A2E', -0.1, 2.7, -0.2, 8, { rz: 0.6, rx: -0.3 })
-    .build();
-  // Copa: varias masas irregulares superpuestas, como follaje
-  const copa = new Kit()
-    .blob(1.75, W, 0, 3.9, 0, { sy: 0.85 }, 0.16, 1)
-    .blob(1.25, W, 0.95, 4.5, 0.55, undefined, 0.18, 2)
-    .blob(1.15, W, -0.85, 4.35, -0.6, undefined, 0.18, 3)
-    .blob(1.0, W, 0.1, 5.1, -0.3, undefined, 0.2, 4)
-    .blob(0.95, W, -0.3, 4.0, 1.0, undefined, 0.2, 5)
-    .build();
-
-  const palmera = new Kit()
-    .cyl(0.2, 0.3, 3, '#8A6A45', 0, 0, 0, 6)
-    .cyl(0.16, 0.2, 3, '#7A5C3B', 0.15, 3, 0, 6, { rz: -0.05 })
-    .build();
-  const hojas = new Kit();
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * Math.PI * 2;
-    hojas.boxC(2.6, 0.08, 0.5, W, 0.3 + Math.cos(a) * 1.2, 5.8, Math.sin(a) * 1.2, { ry: -a, rz: -0.35 });
-  }
 
   const sombrilla = new Kit().cyl(0.04, 0.04, 2.3, '#DDDDDD', 0, 0, 0, 4).build();
   const tela = new Kit().cone(1.4, 0.6, W, 0, 2.0, 0, 8).build();
@@ -165,8 +134,10 @@ function defs(): Record<PropType, PropDef> {
 
   return {
     farol: { base: farol, tint: bulb, emissive: true },
-    arbol: { base: arbol, tint: copa },
-    palmera: { base: palmera, tint: hojas.build() },
+    arbol: buildTree('platano'),
+    arbolRedondo: buildTree('redondo'),
+    arbolAlto: buildTree('alto'),
+    palmera: buildPalm(),
     sombrilla: { base: sombrilla, tint: tela },
     pescador: { base: pescador },
     puestoFeria: { base: puesto.build(), tint: toldo },
@@ -174,7 +145,10 @@ function defs(): Record<PropType, PropDef> {
     muro: { base: muro },
     guirnalda: { ...guirnalda(), emissive: true },
     cartelMBC: { ...cartelPoste(), map: config.brand.locales.path + config.brand.locales.cartel },
-    persona: peaton(),
+    persona: buildPerson('birra'),
+    personaMate: buildPerson('mate'),
+    personaGorra: buildPerson('gorra'),
+    personaBoina: buildPerson('boina'),
   };
 }
 
@@ -191,11 +165,16 @@ const DEFAULT_TINT: Record<PropType, string> = {
   guirnalda: '#FFE2A0',
   cartelMBC: '#ffffff',
   persona: '#2F6DB5',
+  personaMate: '#E63946',
+  personaGorra: '#7FC4E8',
+  personaBoina: '#5B6E3A',
+  arbolRedondo: '#5FA052',
+  arbolAlto: '#3F7A3A',
 };
 
 const PER_SLOT: Record<PropType, number> = {
   farol: 16,
-  arbol: 40,
+  arbol: 30,
   palmera: 16,
   sombrilla: 24,
   pescador: 6,
@@ -204,7 +183,12 @@ const PER_SLOT: Record<PropType, number> = {
   muro: 12,
   guirnalda: 6,
   cartelMBC: 6,
-  persona: 40,
+  persona: 24,
+  personaMate: 24,
+  personaGorra: 24,
+  personaBoina: 24,
+  arbolRedondo: 30,
+  arbolAlto: 30,
 };
 
 interface Entry {
@@ -266,8 +250,8 @@ export class PropInstancer {
       }
       for (const m of tint ? [base, tint] : [base]) {
         m.frustumCulled = false;
-        // Las guirnaldas son finitas: no vale la pena que hagan sombra
-        m.castShadow = type !== 'guirnalda';
+        // Las guirnaldas y la gente son finitas o chicas: su sombra casi no se ve y cuesta mucho
+        m.castShadow = type !== 'guirnalda' && !type.startsWith('persona');
         m.receiveShadow = true;
         for (let i = 0; i < cap; i++) m.setMatrixAt(i, ZERO);
         this.group.add(m);
@@ -282,6 +266,16 @@ export class PropInstancer {
 
   /** Agrega una instancia en coordenadas de mundo. */
   add(slot: number, type: PropType, x: number, y: number, z: number, rotY = 0, scale = 1, color = DEFAULT_TINT[type]): void {
+    // Variante según la posición (siempre la misma para el mismo lugar)
+    const vars = VARIANTS[type];
+    if (vars) {
+      const h = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+      if (type === 'arbol' && (h * 7.31) % 1 < 0.14) color = JACARANDA;
+      type = vars[Math.floor(h * vars.length)];
+      // Un poco de variedad de tamaño y de giro
+      scale *= 0.9 + ((h * 13.7) % 1) * 0.22;
+      if (type !== 'persona' && !type.startsWith('persona')) rotY += h * 6.28;
+    }
     const e = this.entries[type];
     const n = e.counts[slot];
     if (n >= PER_SLOT[type]) return;

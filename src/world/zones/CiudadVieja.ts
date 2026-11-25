@@ -5,6 +5,7 @@ export const CiudadVieja: ZoneDef = {
   id: 'ciudadVieja',
   road: 'cobble',
   sidewalk: '#B9A88E',
+  backdrop: { height: 0.75 },
   decorate(c) {
     c.sides([{ kind: 'concrete', width: 80 }], [{ kind: 'concrete', width: 80 }]);
     const mid = -c.L / 2;

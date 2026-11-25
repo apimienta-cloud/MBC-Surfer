@@ -88,8 +88,8 @@ export class Kit {
    * Esfera irregular y suave (copas de árboles, arbustos, rocas): se deforma con ruido
    * según la posición, así las costuras quedan cerradas y el sombreado es continuo.
    */
-  blob(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts, bump = 0.14, seed = 0): this {
-    const g = mergeVertices(new THREE.IcosahedronGeometry(r, 3).deleteAttribute('normal').deleteAttribute('uv'));
+  blob(r: number, color: string, x = 0, y = 0, z = 0, o?: PartOpts, bump = 0.14, seed = 0, detail = 3): this {
+    const g = mergeVertices(new THREE.IcosahedronGeometry(r, detail).deleteAttribute('normal').deleteAttribute('uv'));
     const p = g.attributes.position as THREE.BufferAttribute;
     const v = new THREE.Vector3();
     for (let i = 0; i < p.count; i++) {

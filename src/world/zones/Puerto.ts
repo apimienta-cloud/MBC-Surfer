@@ -7,6 +7,7 @@ export const Puerto: ZoneDef = {
   id: 'puerto',
   road: 'asphalt',
   sidewalk: '#ADA697',
+  backdrop: { left: false },
   horizon: { id: 'torreAntel', x: -70, z: -250, rotY: 0.5 },
   decorate(c) {
     c.sides([{ kind: 'lot', width: 46 }, { kind: 'water', width: 220, y: -1 }], [{ kind: 'concrete', width: 80 }]);

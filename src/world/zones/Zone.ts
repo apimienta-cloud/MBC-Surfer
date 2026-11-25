@@ -55,6 +55,11 @@ export interface ZoneDef {
   sidewalk: string;
   /** Silueta lejana sin niebla (siempre a la misma distancia de la birra). */
   horizon?: { id: LandmarkId; x: number; z: number; scale?: number; rotY?: number };
+  /**
+   * Ciudad de fondo detrás de las cuadras. `left: false` donde está el mar (ahí se ve el agua);
+   * `height` multiplica la altura de los edificios; `start` es la distancia mínima a la pista.
+   */
+  backdrop?: { left?: boolean; height?: number; start?: number };
   decorate(c: ChunkCtx): void;
 }
 

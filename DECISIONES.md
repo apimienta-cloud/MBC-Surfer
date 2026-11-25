@@ -250,3 +250,11 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Baldosas montevideanas** de 40 cm con 3x3 panes, en gris claro y teñidas con el color de vereda de cada zona. Cordón de granito en bloques de 1,5 m y una cuneta oscura junto al cordón.
 - **Agua:** dos capas del mismo mapa de olas que se mueven en direcciones distintas, poco rugosa para que el sol y el cielo brillen encima.
 - **Cielo:** nubes con ruido en el shader del domo, proyectadas sobre un plano alto; se mueven con el viento y "pasan" a medida que la birra avanza. De noche se oscurecen y aparecen estrellas.
+
+## Ciudad de fondo, gente y árboles nuevos
+
+- **Que no se vea el horizonte:** detrás de las cuadras hay dos filas de edificios altos (cajas instanciadas en un solo draw call) con ventanas, planta baja vidriada y fajas dibujadas por shader en coordenadas del mundo. De noche se prenden ventanas al azar. Se ubican detrás de lo más lejano que haya puesto la zona (landmarks, casas del parque) para no pisar nada.
+- **Silueta lejana:** un cilindro alrededor de la cámara, a 340 m, con dos capas de edificios (atrás más altos y del color de la bruma, adelante más oscuros) y lucecitas de noche. Tapa el fondo de la avenida, donde antes se veía el horizonte.
+- **El mar se sigue viendo:** en Rambla, Pocitos y Puerto (`backdrop.left = false`) no hay ciudad de fondo del lado izquierdo y la silueta lejana se apaga hacia ese lado. En la transición entre zonas se mezcla de a poco.
+- **Gente con variedad:** cuatro modelos con cara, pelo, zapatillas y mangas: con un vaso de birra, una chica con mate y termo (bien uruguayo), un pibe con gorra y mochila saludando y un señor de boina con bigote. La variante sale de la posición, así las zonas no cambian. Se armaron con pocos segmentos y sin sombra propia (son chicas en pantalla y eran lo más caro de dibujar).
+- **Árboles:** tres formas (plátano de vereda, copa redonda, alto) con la copa hecha de muchas masas chicas y sombreado horneado (más oscuro abajo y adentro). Un 14 % son jacarandás violetas, como Montevideo en noviembre. Palmeras con tronco anillado y algo curvo, y hojas arqueadas con folíolos en V.

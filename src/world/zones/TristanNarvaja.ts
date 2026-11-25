@@ -6,6 +6,7 @@ export const TristanNarvaja: ZoneDef = {
   id: 'tristanNarvaja',
   road: 'asphalt',
   sidewalk: '#BFB29C',
+  backdrop: { height: 0.8 },
   decorate(c) {
     c.sides([{ kind: 'concrete', width: 80 }], [{ kind: 'concrete', width: 80 }]);
     if (c.local === 1) c.banner(config.texts.feriaBanner, -c.L / 2);

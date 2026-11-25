@@ -57,6 +57,13 @@ export class Sky {
   readonly hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a66, config.graphics.hemi);
   readonly sun = new THREE.DirectionalLight(0xfff1d6, config.graphics.sun);
   private dome: THREE.Mesh;
+  private skyline: THREE.Mesh;
+  private skyU = {
+    near: { value: new THREE.Color() },
+    far: { value: new THREE.Color() },
+    sea: { value: 0 },
+    night: { value: 0 },
+  };
   private uniforms = {
     top: { value: new THREE.Color() },
     horizon: { value: new THREE.Color() },
@@ -148,6 +155,58 @@ export class Sky {
     );
     this.dome.renderOrder = -1;
     this.group.add(this.dome);
+
+    // Silueta de ciudad lejana alrededor (tapa el horizonte); del lado del mar se apaga
+    this.skyline = new THREE.Mesh(
+      new THREE.CylinderGeometry(340, 340, 160, 160, 1, true).translate(0, 50, 0),
+      new THREE.ShaderMaterial({
+        uniforms: this.skyU,
+        side: THREE.BackSide,
+        fog: false,
+        vertexShader: `
+          varying vec3 vP;
+          void main() {
+            vP = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: `
+          uniform vec3 near;
+          uniform vec3 far;
+          uniform float sea;
+          uniform float night;
+          varying vec3 vP;
+          float h11(float x) { return fract(sin(x * 127.1) * 43758.5453); }
+          float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          void main() {
+            vec2 d = normalize(vP.xz);
+            float u = (atan(d.y, d.x) / 6.2831853 + 0.5);
+            // Dos capas de edificios: atrás más altos y claros (bruma), adelante más bajos y oscuros
+            float u1 = u * 150.0;
+            float u2 = u * 95.0 + 0.37;
+            float hN = 10.0 + 34.0 * pow(h11(floor(u1)), 2.2);
+            float hF = 22.0 + 60.0 * pow(h11(floor(u2) + 57.0), 1.6);
+            // Algunas torres con antena
+            float ant = step(0.93, h11(floor(u2) + 13.0)) * step(abs(fract(u2) - 0.5), 0.04) * 18.0;
+            float k = 1.0 - sea * smoothstep(-0.05, -0.4, d.x);
+            hN *= k;
+            hF = (hF + ant) * k;
+            float y = vP.y;
+            if (y > max(hN, hF)) discard;
+            bool isNear = y < hN;
+            vec3 c = isNear ? near : far;
+            // Ventanitas prendidas de noche
+            vec2 cell = vec2((isNear ? u1 : u2) * 6.0, y / 3.0);
+            float w = step(0.35, fract(cell.x)) * step(fract(cell.x), 0.75) * step(0.3, fract(cell.y)) * step(fract(cell.y), 0.75);
+            float lit = step(0.72, h21(floor(cell) + (isNear ? 0.0 : 31.0)));
+            c += vec3(1.0, 0.8, 0.5) * w * lit * night * (isNear ? 0.55 : 0.35);
+            gl_FragColor = vec4(c, 1.0);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+      }),
+    );
+    this.skyline.renderOrder = -1;
+    this.group.add(this.skyline);
     this.sun.position.set(-6, 12, 4);
 
     for (const zone of zones.all) {
@@ -189,6 +248,13 @@ export class Sky {
     this.uniforms.cloudOffset.value.set(performance.now() * 0.00001, -playerS * 0.0009);
     fog.color.copy(this.hor);
     this.dome.position.copy(camera.position);
+    this.skyline.position.set(camera.position.x, 0, camera.position.z);
+    // Siluetas: la de atrás casi del color de la bruma, la de adelante un poco más oscura y fría
+    this.skyU.far.value.copy(this.hor).lerp(this.top, 0.12).multiplyScalar(0.9);
+    this.skyU.near.value.copy(this.hor).lerp(this.top, 0.3).multiplyScalar(0.74);
+    this.skyU.night.value = this.darkness / Z.night.maxDarkness;
+    const seaOf = (z: { backdrop?: { left?: boolean } }): number => (z.backdrop?.left === false ? 1 : 0);
+    this.skyU.sea.value = seaOf(a) + (seaOf(b) - seaOf(a)) * t;
 
     this.hemi.intensity = config.graphics.hemi * (1 - 0.45 * this.darkness);
     this.hemi.color.copy(this.tmp.set('#ffffff').lerp(this.top, 0.25));

@@ -5,6 +5,7 @@ export const TresCruces: ZoneDef = {
   id: 'tresCruces',
   road: 'asphalt',
   sidewalk: '#C4BBA8',
+  backdrop: { start: 50 },
   decorate(c) {
     c.sides([{ kind: 'grass', width: 90 }], [{ kind: 'grass', width: 90 }]);
     const stadium = c.local === 6;

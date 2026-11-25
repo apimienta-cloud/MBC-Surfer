@@ -5,6 +5,7 @@ export const Pocitos: ZoneDef = {
   id: 'pocitos',
   road: 'asphalt',
   sidewalk: '#D2C6B0',
+  backdrop: { left: false, height: 1.2 },
   decorate(c) {
     const park = c.local >= 7 && c.local <= 9;
     c.sides([{ kind: 'sand', width: 28 }, { kind: 'water', width: 220, y: -0.4 }], [{ kind: park ? 'grass' : 'concrete', width: 80 }]);

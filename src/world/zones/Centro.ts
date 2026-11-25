@@ -5,6 +5,7 @@ export const Centro: ZoneDef = {
   id: 'centro',
   road: 'asphalt',
   sidewalk: '#BDB4A6',
+  backdrop: { height: 1.3 },
   horizon: { id: 'palacioLegislativo', x: 0, z: -300, scale: 1.3 },
   decorate(c) {
     c.sides([{ kind: 'concrete', width: 80 }], [{ kind: 'concrete', width: 80 }]);
