@@ -61,6 +61,10 @@ export class Sky {
     top: { value: new THREE.Color() },
     horizon: { value: new THREE.Color() },
     bottom: { value: new THREE.Color() },
+    cloudLit: { value: new THREE.Color() },
+    cloudShade: { value: new THREE.Color() },
+    cloudOffset: { value: new THREE.Vector2() },
+    night: { value: 0 },
   };
   private horizon: HorizonItem[] = [];
   private top = new THREE.Color();
@@ -76,7 +80,7 @@ export class Sky {
 
   constructor(private zones: ZoneSystem) {
     this.dome = new THREE.Mesh(
-      new THREE.SphereGeometry(380, 24, 12),
+      new THREE.SphereGeometry(380, 48, 24),
       new THREE.ShaderMaterial({
         uniforms: this.uniforms,
         side: THREE.BackSide,
@@ -92,10 +96,50 @@ export class Sky {
           uniform vec3 top;
           uniform vec3 horizon;
           uniform vec3 bottom;
+          uniform vec3 cloudLit;
+          uniform vec3 cloudShade;
+          uniform vec2 cloudOffset;
+          uniform float night;
           varying vec3 vDir;
+          float hash12(vec2 p) {
+            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+          }
+          float noise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+          }
+          float fbm(vec2 p) {
+            float s = 0.0;
+            float a = 0.5;
+            for (int i = 0; i < 5; i++) {
+              s += noise(p) * a;
+              p = p * 2.03 + vec2(1.7, 9.2);
+              a *= 0.5;
+            }
+            return s;
+          }
           void main() {
-            float h = vDir.y;
+            vec3 d = normalize(vDir);
+            float h = d.y;
             vec3 c = h > 0.0 ? mix(horizon, top, pow(min(1.0, h * 2.2), 0.7)) : mix(horizon, bottom, min(1.0, -h * 4.0));
+            if (h > 0.0) {
+              // Estrellas de noche (solo arriba del horizonte)
+              vec2 sp = d.xz / (h + 0.3) * 260.0;
+              float st = hash12(floor(sp));
+              float tw = smoothstep(0.35, 0.0, length(fract(sp) - 0.5));
+              c += vec3(0.9, 0.92, 1.0) * step(0.985, st) * tw * night * smoothstep(0.05, 0.3, h);
+              // Nubes: ruido proyectado sobre un plano alto, más chatas cerca del horizonte
+              vec2 p = d.xz / (h + 0.12) * 1.4 + cloudOffset;
+              float n = fbm(p);
+              float cover = smoothstep(0.5, 0.78, n) * smoothstep(0.02, 0.22, h);
+              float body = smoothstep(0.5, 0.95, fbm(p * 1.9 + 3.1));
+              vec3 cl = mix(cloudLit, cloudShade, body * 0.8 + 0.2 * (1.0 - h));
+              c = mix(c, cl, cover * 0.88);
+            }
             gl_FragColor = vec4(c, 1.0);
             #include <tonemapping_fragment>
             #include <colorspace_fragment>
@@ -136,6 +180,13 @@ export class Sky {
     this.uniforms.top.value.copy(this.top);
     this.uniforms.horizon.value.copy(this.hor);
     this.uniforms.bottom.value.copy(this.hor).multiplyScalar(0.8);
+    // Nubes: claras y cálidas de día, teñidas por el horizonte; oscuras de noche
+    const nightK = this.darkness / Z.night.maxDarkness;
+    this.uniforms.night.value = nightK;
+    this.uniforms.cloudLit.value.set('#FFFFFF').lerp(this.hor, 0.35).lerp(this.tmp.copy(this.top).multiplyScalar(1.6), nightK);
+    this.uniforms.cloudShade.value.copy(this.top).lerp(this.hor, 0.5).multiplyScalar(0.82);
+    // Se mueven con el viento y "pasan" a medida que la birra avanza
+    this.uniforms.cloudOffset.value.set(performance.now() * 0.00001, -playerS * 0.0009);
     fog.color.copy(this.hor);
     this.dome.position.copy(camera.position);
 

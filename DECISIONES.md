@@ -242,3 +242,11 @@ Dudas menores resueltas con la opción más simple, como pide la spec (CLAUDE.md
 - **Escenario más detallado:** las ventanas ahora tienen vidrio brillante (un atributo `gloss` por vértice en el kit, que baja la rugosidad y sube el metal), marco, dintel, alféizar y parteluz. Los edificios coloniales sumaron zócalo, molduras, puerta de madera y balcones con baranda; los de departamentos, barandas de vidrio y hall vidriado.
 - **Birra mejorada:** envase torneado de una pieza en vez de cilindros apilados, barniz brillante, gotitas de condensación en el vidrio, ojos con brillito que parpadean, pulgar en el guante y zapatillas con suela. Todas las piezas con más segmentos para que no se vean facetas.
 - **Modelos 3D "de verdad":** todo sigue hecho por código. Modelos esculpidos (Blender, `.glb`) necesitan un artista 3D o un pack con licencia libre. Los constructores (`Birra`, `Lunes`, edificios) se pueden cambiar por un modelo cargado sin tocar el resto del juego.
+
+## Piso y cielo con textura
+
+- **Texturas generadas, no archivos:** asfalto, baldosas, pasto, arena, hormigón y olas se hornean en canvas al arrancar (ruido periódico, así se repiten sin costura). No suman peso a la descarga.
+- **Coordenadas del mundo:** el piso usa la posición xz en vez de las UV, así las franjas de 80 o 220 m no estiran la textura y no se notan los cortes entre chunks. Se resta el origen de cada chunk redondeado para no perder precisión a miles de metros.
+- **Baldosas montevideanas** de 40 cm con 3x3 panes, en gris claro y teñidas con el color de vereda de cada zona. Cordón de granito en bloques de 1,5 m y una cuneta oscura junto al cordón.
+- **Agua:** dos capas del mismo mapa de olas que se mueven en direcciones distintas, poco rugosa para que el sol y el cielo brillen encima.
+- **Cielo:** nubes con ruido en el shader del domo, proyectadas sobre un plano alto; se mueven con el viento y "pasan" a medida que la birra avanza. De noche se oscurecen y aparecen estrellas.

@@ -188,6 +188,8 @@ Fuentes: una display redondeada y divertida para títulos (Google Fonts, por eje
 - Si existen colores de marca en `config.brand.colors`, tienen prioridad.
 - Cámara detrás y arriba de la birra, con FOV que aumenta un poco a mayor velocidad y un leve shake al tropezar.
 - Sombras: una sola luz direccional con shadow map que sigue a la birra (más chico en celular), más una sombra de contacto suave debajo. Oclusión ambiental solo en desktop.
+- Piso con texturas generadas por código (`src/world/Ground.ts`), en coordenadas del mundo: asfalto con grano, veredas de baldosas teñidas por zona con cordón de granito y cuneta, pasto, arena con ondas, hormigón con juntas y agua con dos capas de olas que se mueven.
+- Cielo con nubes que pasan a medida que la birra avanza y estrellas de noche.
 
 ---
 

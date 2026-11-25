@@ -8,6 +8,7 @@ import { PropInstancer, PropType } from './landmarks/Props';
 import { ZoneSystem } from './zones';
 import type { ChunkCtx, GroundKind, Side, Strip, ZoneDef } from './zones/Zone';
 import type { Particles } from '../fx/Particles';
+import { makeGround, tickGround, GroundMaterials } from './Ground';
 
 const W = config.world;
 const L = W.chunkLength;
@@ -44,7 +45,7 @@ export class ChunkManager {
   private slots: Slot[] = [];
   private roadMats: Record<ZoneDef['road'], THREE.Material>;
   private groundMats: Record<GroundKind, THREE.Material>;
-  private sidewalkMats = new Map<string, THREE.Material>();
+  private ground: GroundMaterials;
   private buildings = new Map<BuildingStyle, BuildingVariant[]>();
   private bannerGeo: THREE.BufferGeometry;
   private bannerMats = new Map<string, THREE.Material>();
@@ -58,17 +59,10 @@ export class ChunkManager {
     this.props = new PropInstancer(count);
     this.group.add(this.props.group);
 
-    this.roadMats = {
-      asphalt: new THREE.MeshStandardMaterial({ map: makeAsphalt(), roughness: 0.95 }),
-      cobble: new THREE.MeshStandardMaterial({ map: makeCobble(), roughness: 0.9 }),
-    };
-    this.groundMats = {
-      concrete: new THREE.MeshStandardMaterial({ color: '#A39C90', roughness: 1 }),
-      grass: new THREE.MeshStandardMaterial({ color: '#6E9F55', roughness: 1 }),
-      sand: new THREE.MeshStandardMaterial({ color: '#E3CF9E', roughness: 1 }),
-      water: new THREE.MeshStandardMaterial({ color: '#4A86A8', roughness: 0.25, metalness: 0.2 }),
-      lot: new THREE.MeshStandardMaterial({ color: '#7D7A74', roughness: 1 }),
-    };
+    // Piso con texturas generadas en coordenadas del mundo (ver Ground.ts)
+    const gm = (this.ground = makeGround(makeCobble()));
+    this.roadMats = { asphalt: gm.asphalt, cobble: gm.cobble };
+    this.groundMats = { concrete: gm.concrete, grass: gm.grass, sand: gm.sand, water: gm.water, lot: gm.lot };
 
     // Geometrías compartidas por todos los chunks
     const road = new THREE.PlaneGeometry(ROAD_W, L).rotateX(-Math.PI / 2).translate(0, 0, -L / 2);
@@ -78,6 +72,14 @@ export class ChunkManager {
     for (let lane = 1; lane < config.lanes.count; lane++) {
       const x = (lane - config.lanes.count / 2) * config.lanes.width;
       for (let z = 2; z < L; z += 6) lines.box(0.12, 0.02, 3, config.colors.laneLine, x, 0.005, -z);
+    }
+    // Cordón de granito en bloques y cuneta más oscura junto al cordón
+    for (const sx of [-1, 1]) {
+      for (let z = 0; z < L; z += 1.5) {
+        const shade = ['#B9B5AE', '#AEAAA2', '#C2BEB6'][Math.floor(z / 1.5) % 3];
+        lines.box(0.24, 0.175, 1.47, shade, sx * (ROAD_HALF + 0.12), 0, -z - 0.75);
+      }
+      lines.box(0.4, 0.004, L, '#3F3F45', sx * (ROAD_HALF - 0.2), 0.001, -L / 2);
     }
     const linesGeo = lines.build();
     this.bannerGeo = new Kit()
@@ -134,6 +136,7 @@ export class ChunkManager {
     });
 
     if (dt > 0) {
+      tickGround(dt);
       for (const s of this.slots) {
         if (!s.smoke.length) continue;
         s.smokeAcc += dt * SMOKE_PER_SECOND;
@@ -165,12 +168,7 @@ export class ChunkManager {
   }
 
   private sidewalkMat(color: string): THREE.Material {
-    let m = this.sidewalkMats.get(color);
-    if (!m) {
-      m = new THREE.MeshStandardMaterial({ color, roughness: 1 });
-      this.sidewalkMats.set(color, m);
-    }
-    return m;
+    return this.ground.sidewalk(color);
   }
 
   private buildingVariants(style: BuildingStyle): BuildingVariant[] {
@@ -386,23 +384,6 @@ function canvasTex(size: number, draw: (ctx: CanvasRenderingContext2D) => void, 
   t.repeat.set(...repeat);
   t.anisotropy = 4;
   return t;
-}
-
-function makeAsphalt(): THREE.CanvasTexture {
-  const r = mulberry32(42);
-  return canvasTex(
-    128,
-    (ctx) => {
-      ctx.fillStyle = '#5E5E66';
-      ctx.fillRect(0, 0, 128, 128);
-      for (let i = 0; i < 900; i++) {
-        const g = 70 + Math.floor(r() * 40);
-        ctx.fillStyle = `rgb(${g},${g},${g + 6})`;
-        ctx.fillRect(r() * 128, r() * 128, 2, 2);
-      }
-    },
-    [2, L / 6],
-  );
 }
 
 function makeCobble(): THREE.CanvasTexture {
